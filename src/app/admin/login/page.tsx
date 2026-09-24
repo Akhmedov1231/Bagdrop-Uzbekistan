@@ -1,20 +1,10 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { createBrowserClient } from "@supabase/ssr";
-
-const supabaseUrl =
-  process.env.NEXT_PUBLIC_SUPABASE_URL!;
-
-const supabaseAnonKey =
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-const supabase = createBrowserClient(
-  supabaseUrl,
-  supabaseAnonKey
-);
+import { createClient } from "@/lib/supabase/client";
 
 export default function AdminLoginPage() {
+  const supabase = createClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] =
     useState("");

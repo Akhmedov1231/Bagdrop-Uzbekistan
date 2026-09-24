@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { calculateTotal } from "@/lib/pricing";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 
 type CreateBookingBody = {
   locationId: string;
@@ -66,6 +67,28 @@ function makeBagTags(
 
 export async function POST(request: Request) {
   try {
+    const clientIp = getClientIp(request);
+    const rateLimit = checkRateLimit(clientIp, {
+      maxRequests: 10,
+      windowMs: 60 * 1000,
+      prefix: "booking_create",
+    });
+
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Too many booking attempts. Please slow down and try again.",
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(Math.ceil((rateLimit.reset - Date.now()) / 1000)),
+          },
+        }
+      );
+    }
+
     const body =
       (await request.json()) as CreateBookingBody;
 

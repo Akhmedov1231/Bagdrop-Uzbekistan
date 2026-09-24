@@ -13,9 +13,10 @@ import QRCode from "qrcode";
 import { calculateTotal } from "@/lib/pricing";
 import { Location, CustomerDetails } from "@/lib/types";
 import { useLanguage } from "@/lib/i18n";
+import { BOOKING_CONFIG } from "@/lib/config";
 
 const TOTAL_STEPS = 5;
-const USD_UZS_RATE = 11765.21;
+const USD_UZS_RATE = BOOKING_CONFIG.usdRate;
 
 type ApiLocation = {
   id: string;

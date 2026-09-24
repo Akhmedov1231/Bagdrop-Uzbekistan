@@ -4,7 +4,84 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body { padding: 0; margin: 0; }
+html {
+  scroll-behavior: smooth;
+}
+
+html, body {
+  padding: 0;
+  margin: 0;
+}
+
+/* Custom Micro-animations */
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(224, 136, 60, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(224, 136, 60, 0.45);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-float {
+  animation: floatSlow 4s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: floatSlow 4s ease-in-out 2s infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Glassmorphism utilities */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(27, 42, 58, 0.08);
+}
+
+.glass-panel-dark {
+  background: rgba(27, 42, 58, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
 
 .demo-pill {
   display: inline-flex;
@@ -22,16 +99,17 @@ html, body { padding: 0; margin: 0; }
 .admin-input {
   width: 100%;
   border: 1px solid #dedbd4;
-  border-radius: 6px;
-  padding: 9px 11px;
+  border-radius: 8px;
+  padding: 10px 14px;
   font-size: 14px;
   background: white;
   outline: none;
+  transition: all 0.2s ease;
 }
 
 .admin-input:focus {
   border-color: #c96f32;
-  box-shadow: 0 0 0 2px rgba(201, 111, 50, 0.12);
+  box-shadow: 0 0 0 3px rgba(201, 111, 50, 0.15);
 }
 
 .admin-input:disabled {

@@ -5,6 +5,7 @@ import {
   paymentService,
   type PaymentProvider,
 } from "@/lib/paymentService";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 
 const ALLOWED_PROVIDERS: PaymentProvider[] = [
   "atmos",
@@ -15,6 +16,28 @@ const ALLOWED_PROVIDERS: PaymentProvider[] = [
 
 export async function POST(request: Request) {
   try {
+    const clientIp = getClientIp(request);
+    const rateLimit = checkRateLimit(clientIp, {
+      maxRequests: 10,
+      windowMs: 60 * 1000,
+      prefix: "payment_create",
+    });
+
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Too many payment creation requests. Please try again shortly.",
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(Math.ceil((rateLimit.reset - Date.now()) / 1000)),
+          },
+        }
+      );
+    }
+
     const body = await request.json();
 
     const bookingId =

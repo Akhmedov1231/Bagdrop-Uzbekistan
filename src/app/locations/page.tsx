@@ -5,7 +5,9 @@ import Link from "next/link";
 
 import MapSection from "@/components/MapSection";
 import DemoBadge from "@/components/DemoBadge";
+import { LocationCardSkeleton, MapSkeleton, Skeleton } from "@/components/Skeleton";
 import { Location } from "@/lib/types";
+import { LOCATIONS } from "@/lib/mockData";
 import { useLanguage } from "@/lib/i18n";
 
 type ApiLocation = {
@@ -56,14 +58,14 @@ function LocationsInner() {
   const { t } = useLanguage();
 
   const CITY_OPTIONS = [
-    "Tashkent",
     "Samarkand",
+    "Tashkent",
     "Bukhara",
     "Khiva",
   ];
 
   const [selectedCity, setSelectedCity] =
-    useState("Tashkent");
+    useState("Samarkand");
 
   const cityLabels: Record<string, string> = {
     Tashkent: t.locationsPage.tashkent,
@@ -73,13 +75,19 @@ function LocationsInner() {
   };
 
   const [locations, setLocations] =
-    useState<Location[]>([]);
+    useState<Location[]>(LOCATIONS);
 
   const [availability, setAvailability] =
-    useState<Record<string, number>>({});
+    useState<Record<string, number>>(() => {
+      const initial: Record<string, number> = {};
+      LOCATIONS.forEach((l) => {
+        initial[l.id] = l.availableBags;
+      });
+      return initial;
+    });
 
   const [loading, setLoading] =
-    useState(true);
+    useState(false);
 
   const [error, setError] =
     useState("");
@@ -458,13 +466,22 @@ function LocationsInner() {
 
   if (loading) {
     return (
-      <main className="max-w-[1100px] mx-auto px-6 py-16">
-        <div className="bg-white border border-line rounded-xl p-8 text-center">
-          <div className="w-8 h-8 mx-auto mb-4 rounded-full border-2 border-line border-t-teal animate-spin" />
+      <main className="max-w-[1140px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
+        <div className="mb-8">
+          <Skeleton className="h-9 w-64 mb-3 rounded-lg" />
+          <Skeleton className="h-4 w-96 rounded" />
+        </div>
 
-          <p className="text-ink-soft">
-            {t.locationsPage.loading}
-          </p>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <LocationCardSkeleton key={i} />
+            ))}
+          </div>
+
+          <div className="lg:col-span-5 sticky top-24">
+            <MapSkeleton />
+          </div>
         </div>
       </main>
     );

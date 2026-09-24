@@ -6,6 +6,7 @@ import { LanguageProvider } from "@/lib/i18n";
 
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import MobileBottomNav from "@/components/MobileBottomNav";
 
 import { BRAND } from "@/lib/config";
 
@@ -45,11 +46,12 @@ export default function RootLayout({
           <AppDataProvider>
             <Navbar />
 
-            <main className="flex-1">
+            <main className="flex-1 pb-16 sm:pb-0">
               {children}
             </main>
 
             <Footer />
+            <MobileBottomNav />
           </AppDataProvider>
         </LanguageProvider>
       </body>

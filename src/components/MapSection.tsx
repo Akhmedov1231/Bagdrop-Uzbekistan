@@ -2,6 +2,8 @@
 
 import dynamic from "next/dynamic";
 
+import { MapSkeleton } from "./Skeleton";
+
 export type MapLocation = {
   id: string;
   name: string;
@@ -19,11 +21,7 @@ const RealMap = dynamic(
   () => import("./RealMap"),
   {
     ssr: false,
-    loading: () => (
-      <div className="h-[430px] rounded-xl bg-sand flex items-center justify-center text-sm text-ink-soft">
-        Loading map...
-      </div>
-    ),
+    loading: () => <MapSkeleton />,
   }
 );
 

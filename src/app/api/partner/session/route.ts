@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthenticatedUser } from "@/lib/supabase/auth";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   let stage = "start";
 

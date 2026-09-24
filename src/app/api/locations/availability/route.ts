@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+export const dynamic = "force-dynamic";
+
 const RESERVED_STATUSES = [
   "PENDING_PAYMENT",
   "PAID",
@@ -75,6 +77,24 @@ export async function GET(request: Request) {
       );
     }
 
+    // Check built-in mock locations first for demo locations
+    const { LOCATIONS } = await import("@/lib/mockData");
+    const mockLoc = LOCATIONS.find((l) => l.id === locationId || l.slug === locationId);
+
+    if (mockLoc) {
+      return NextResponse.json({
+        ok: true,
+        locationId: mockLoc.id,
+        capacity: mockLoc.capacity,
+        reservedBags: mockLoc.capacity - mockLoc.availableBags,
+        availableBags: mockLoc.availableBags,
+        dropoffDate,
+        dropoffTime,
+        pickupDate,
+        pickupTime,
+      });
+    }
+
     const supabase: any = createAdminClient();
 
     // Get location capacity
@@ -84,9 +104,24 @@ export async function GET(request: Request) {
         .select("id, capacity, active")
         .eq("id", locationId)
         .eq("active", true)
-        .single();
+        .maybeSingle();
 
     if (locationError || !location) {
+
+      if (mockLoc) {
+        return NextResponse.json({
+          ok: true,
+          locationId: mockLoc.id,
+          capacity: mockLoc.capacity,
+          reservedBags: mockLoc.capacity - mockLoc.availableBags,
+          availableBags: mockLoc.availableBags,
+          dropoffDate,
+          dropoffTime,
+          pickupDate,
+          pickupTime,
+        });
+      }
+
       return NextResponse.json(
         {
           ok: false,
