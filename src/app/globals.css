@@ -1,0 +1,40 @@
+@import "leaflet/dist/leaflet.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body { padding: 0; margin: 0; }
+
+.demo-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: #faf0dc;
+  color: #a3701f;
+  padding: 3px 9px;
+  border-radius: 100px;
+}
+
+.admin-input {
+  width: 100%;
+  border: 1px solid #dedbd4;
+  border-radius: 6px;
+  padding: 9px 11px;
+  font-size: 14px;
+  background: white;
+  outline: none;
+}
+
+.admin-input:focus {
+  border-color: #c96f32;
+  box-shadow: 0 0 0 2px rgba(201, 111, 50, 0.12);
+}
+
+.admin-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
