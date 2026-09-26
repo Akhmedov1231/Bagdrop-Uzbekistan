@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { calculateTotal } from "@/lib/pricing";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import {
+  sanitizeName,
+  validateEmail,
+  validatePhone,
+  isValidUUID,
+  safeParseBody,
+} from "@/lib/security";
 
 type CreateBookingBody = {
   locationId: string;
@@ -89,24 +96,39 @@ export async function POST(request: Request) {
       );
     }
 
-    const body =
-      (await request.json()) as CreateBookingBody;
+    // --------------------------------------------------
+    // 0. Safe body parsing with size limit (10KB)
+    // --------------------------------------------------
 
-    const {
-      locationId,
-      dropoffDate,
-      dropoffTime,
-      pickupDate,
-      pickupTime,
-      bagCount,
-      firstName,
-      lastName,
-      phone,
-      email,
-    } = body;
+    const parsed = await safeParseBody<CreateBookingBody>(request, 10_000);
+
+    if (!parsed.ok) {
+      return NextResponse.json(
+        { ok: false, error: parsed.error },
+        { status: 400 }
+      );
+    }
+
+    const body = parsed.data;
 
     // --------------------------------------------------
-    // 1. Required fields
+    // 0.5 Sanitize all user inputs
+    // --------------------------------------------------
+
+    const locationId = (body.locationId || "").trim();
+    const dropoffDate = (body.dropoffDate || "").trim();
+    const dropoffTime = (body.dropoffTime || "").trim();
+    const pickupDate = (body.pickupDate || "").trim();
+    const pickupTime = (body.pickupTime || "").trim();
+    const bagCount = body.bagCount;
+    const firstName = sanitizeName(body.firstName);
+    const lastName = sanitizeName(body.lastName);
+    const emailResult = validateEmail(body.email);
+    const phoneResult = validatePhone(body.phone);
+
+
+    // --------------------------------------------------
+    // 1. Required fields + UUID + email/phone format
     // --------------------------------------------------
 
     if (
@@ -115,10 +137,8 @@ export async function POST(request: Request) {
       !dropoffTime ||
       !pickupDate ||
       !pickupTime ||
-      !firstName?.trim() ||
-      !lastName?.trim() ||
-      !phone?.trim() ||
-      !email?.trim()
+      !firstName ||
+      !lastName
     ) {
       return NextResponse.json(
         {
@@ -129,6 +149,43 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    // Validate locationId is a proper UUID to prevent injection
+    if (!isValidUUID(locationId)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Invalid location ID format.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate email format
+    if (!emailResult.valid) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Please enter a valid email address.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate phone format
+    if (!phoneResult.valid) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Please enter a valid phone number.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const email = emailResult.email;
+    const phone = phoneResult.phone;
+
 
     // --------------------------------------------------
     // 2. Date/time validation

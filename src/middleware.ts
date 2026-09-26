@@ -43,6 +43,65 @@ export async function middleware(
     });
 
   // ==========================================
+  // PATH TRAVERSAL PROTECTION
+  // ==========================================
+
+  const pathname =
+    request.nextUrl.pathname;
+
+  if (
+    pathname.includes("..") ||
+    pathname.includes("\\") ||
+    pathname.includes("%00") ||
+    pathname.includes("%2e%2e")
+  ) {
+    return new NextResponse(
+      "Forbidden",
+      { status: 403 }
+    );
+  }
+
+  // ==========================================
+  // CSRF PROTECTION (API mutations)
+  //
+  // For POST/PUT/PATCH/DELETE requests to /api/*,
+  // verify that the Origin header is from our
+  // known domains. This prevents cross-site
+  // request forgery attacks.
+  // ==========================================
+
+  const ALLOWED_ORIGINS = [
+    "https://bagdrop.uz",
+    "https://www.bagdrop.uz",
+    "http://localhost:3000",
+    "http://localhost:3001",
+  ];
+
+  const isApiMutation =
+    pathname.startsWith("/api/") &&
+    ["POST", "PUT", "PATCH", "DELETE"].includes(
+      request.method
+    );
+
+  if (isApiMutation) {
+    const origin = request.headers.get("origin");
+
+    if (
+      origin &&
+      !ALLOWED_ORIGINS.includes(origin)
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Forbidden: invalid origin.",
+        },
+        { status: 403 }
+      );
+    }
+  }
+
+
+  // ==========================================
   // SUPABASE SERVER CLIENT
   // ==========================================
 
@@ -97,9 +156,6 @@ export async function middleware(
     },
   } =
     await supabase.auth.getUser();
-
-  const pathname =
-    request.nextUrl.pathname;
 
   // ==========================================
   // ROLE HELPERS

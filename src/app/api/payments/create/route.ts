@@ -6,6 +6,7 @@ import {
   type PaymentProvider,
 } from "@/lib/paymentService";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { safeParseBody, isValidUUID } from "@/lib/security";
 
 const ALLOWED_PROVIDERS: PaymentProvider[] = [
   "atmos",
@@ -38,7 +39,21 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = await request.json();
+    // Safe body parsing with size limit
+    const parsed = await safeParseBody<{
+      bookingId?: string;
+      bookingNumber?: string;
+      provider?: string;
+    }>(request, 5_000);
+
+    if (!parsed.ok) {
+      return NextResponse.json(
+        { ok: false, error: parsed.error },
+        { status: 400 }
+      );
+    }
+
+    const body = parsed.data;
 
     const bookingId =
       typeof body.bookingId === "string"
@@ -64,6 +79,18 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    // Validate bookingId is a proper UUID
+    if (!isValidUUID(bookingId)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Invalid booking ID format.",
+        },
+        { status: 400 }
+      );
+    }
+
 
     if (!bookingNumber) {
       return NextResponse.json(
