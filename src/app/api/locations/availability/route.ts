@@ -107,21 +107,6 @@ export async function GET(request: Request) {
         .maybeSingle();
 
     if (locationError || !location) {
-
-      if (mockLoc) {
-        return NextResponse.json({
-          ok: true,
-          locationId: mockLoc.id,
-          capacity: mockLoc.capacity,
-          reservedBags: mockLoc.capacity - mockLoc.availableBags,
-          availableBags: mockLoc.availableBags,
-          dropoffDate,
-          dropoffTime,
-          pickupDate,
-          pickupTime,
-        });
-      }
-
       return NextResponse.json(
         {
           ok: false,

@@ -1,14 +1,28 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 
 import MapSection from "@/components/MapSection";
 import DemoBadge from "@/components/DemoBadge";
-import { LocationCardSkeleton, MapSkeleton, Skeleton } from "@/components/Skeleton";
+import { LocationCardSkeleton, MapSkeleton } from "@/components/Skeleton";
 import { Location } from "@/lib/types";
 import { LOCATIONS } from "@/lib/mockData";
 import { useLanguage } from "@/lib/i18n";
+import {
+  MapPin,
+  Clock,
+  ShieldCheck,
+  ArrowRight,
+  Luggage,
+  Sparkles,
+  Compass,
+  Building,
+  CheckCircle2,
+  RefreshCw,
+} from "lucide-react";
 
 type ApiLocation = {
   id: string;
@@ -42,30 +56,21 @@ function formatTime(value: string) {
 
 function getToday() {
   const now = new Date();
-
   const year = now.getFullYear();
-  const month = String(
-    now.getMonth() + 1
-  ).padStart(2, "0");
-  const day = String(
-    now.getDate()
-  ).padStart(2, "0");
-
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 
-function LocationsInner() {
+function LocationsContent() {
   const { t } = useLanguage();
+  const searchParams = useSearchParams();
+  const initialQuery = searchParams.get("q") || "";
 
-  const CITY_OPTIONS = [
-    "Samarkand",
-    "Tashkent",
-    "Bukhara",
-    "Khiva",
-  ];
+  const CITY_OPTIONS = ["Samarkand", "Tashkent", "Bukhara", "Khiva"];
 
-  const [selectedCity, setSelectedCity] =
-    useState("Samarkand");
+  const [selectedCity, setSelectedCity] = useState("Samarkand");
+  const [searchFilter, setSearchFilter] = useState(initialQuery);
 
   const cityLabels: Record<string, string> = {
     Tashkent: t.locationsPage.tashkent,
@@ -74,42 +79,23 @@ function LocationsInner() {
     Khiva: t.locationsPage.khiva,
   };
 
-  const [locations, setLocations] =
-    useState<Location[]>(LOCATIONS);
-
-  const [availability, setAvailability] =
-    useState<Record<string, number>>(() => {
-      const initial: Record<string, number> = {};
-      LOCATIONS.forEach((l) => {
-        initial[l.id] = l.availableBags;
-      });
-      return initial;
+  const [locations, setLocations] = useState<Location[]>(LOCATIONS);
+  const [availability, setAvailability] = useState<Record<string, number>>(() => {
+    const initial: Record<string, number> = {};
+    LOCATIONS.forEach((l) => {
+      initial[l.id] = l.availableBags;
     });
+    return initial;
+  });
 
-  const [loading, setLoading] =
-    useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [loadingAvailability, setLoadingAvailability] = useState(false);
 
-  const [error, setError] =
-    useState("");
-
-  const [loadingAvailability, setLoadingAvailability] =
-    useState(false);
-
-  const [dropoffDate] =
-    useState(getToday);
-
-  const [pickupDate] =
-    useState(getToday);
-
-  const [dropoffTime] =
-    useState("10:00");
-
-  const [pickupTime] =
-    useState("18:00");
-
-  // ==================================================
-  // LOAD LOCATIONS
-  // ==================================================
+  const [dropoffDate] = useState(getToday);
+  const [pickupDate] = useState(getToday);
+  const [dropoffTime] = useState("10:00");
+  const [pickupTime] = useState("18:00");
 
   useEffect(() => {
     let cancelled = false;
@@ -119,133 +105,53 @@ function LocationsInner() {
         setLoading(true);
         setError("");
 
-        const response = await fetch(
-          "/api/locations",
-          {
-            cache: "no-store",
-          }
-        );
+        const response = await fetch("/api/locations", {
+          cache: "no-store",
+        });
 
-        const result =
-          await response.json();
+        const result = await response.json();
 
-        if (
-          !response.ok ||
-          !result.ok
-        ) {
-          throw new Error(
-            result.error ||
-              "Failed to load locations."
-          );
+        if (!response.ok || !result.ok) {
+          throw new Error(result.error || "Failed to load locations.");
         }
 
-        if (cancelled) {
-          return;
-        }
+        if (cancelled) return;
 
-        const apiLocations =
-          (result.locations ??
-            []) as ApiLocation[];
+        const apiLocations = (result.locations ?? []) as ApiLocation[];
 
-        const mapped: Location[] =
-          apiLocations
-            .filter(
-              (location) =>
-                location.active
-            )
-            .map(
-              (
-                location,
-                index
-              ) => ({
-                id: location.id,
-
-                slug: location.slug,
-
-                name: location.name,
-
-                city: location.city,
-
-                address:
-                  location.address,
-
-                distanceLabel: "",
-
-                description:
-                  location.description ??
-                  "",
-
-                pricePerBagPerDay:
-                  Number(
-                    location.price_per_bag
-                  ),
-
-                currency: "UZS",
-
-                capacity:
-                  Number(
-                    location.capacity
-                  ),
-
-                availableBags:
-                  Number(
-                    location.capacity
-                  ),
-
-                maxBagsPerBooking: 8,
-
-                hours: {
-                  open: formatTime(
-                    location.opening_time
-                  ),
-                  close: formatTime(
-                    location.closing_time
-                  ),
-                },
-
-                amenities: [
-                  "Verified partner",
-                  "Indoor storage",
-                ],
-
-                lat: Number(
-                  location.latitude
-                ),
-
-                lng: Number(
-                  location.longitude
-                ),
-
-                googleMapsUrl:
-                  location.google_maps_url ??
-                  "",
-
-                yandexMapsUrl:
-                  location.yandex_maps_url ??
-                  "",
-
-                partnerName: "",
-
-                color: [
-                  "#1f6f6b",
-                  "#e0883c",
-                  "#8a5a3b",
-                ][index % 3],
-
-                isDemo: false,
-
-                active:
-                  location.active,
-              })
-            );
+        const mapped: Location[] = apiLocations
+          .filter((location) => location.active)
+          .map((location, index) => ({
+            id: location.id,
+            slug: location.slug,
+            name: location.name,
+            city: location.city,
+            address: location.address,
+            distanceLabel: "",
+            description: location.description ?? "",
+            pricePerBagPerDay: Number(location.price_per_bag),
+            currency: "UZS",
+            capacity: Number(location.capacity),
+            availableBags: Number(location.capacity),
+            maxBagsPerBooking: 8,
+            hours: {
+              open: formatTime(location.opening_time),
+              close: formatTime(location.closing_time),
+            },
+            amenities: ["Verified partner", "Indoor storage"],
+            lat: Number(location.latitude),
+            lng: Number(location.longitude),
+            googleMapsUrl: location.google_maps_url ?? "",
+            yandexMapsUrl: location.yandex_maps_url ?? "",
+            partnerName: "",
+            color: ["#10b981", "#f97316", "#0ea5e9"][index % 3],
+            isDemo: false,
+            active: location.active,
+          }));
 
         setLocations(mapped);
       } catch (loadError) {
-        console.error(
-          "Locations loading error:",
-          loadError
-        );
-
+        console.error("Locations loading error:", loadError);
         if (!cancelled) {
           setError(
             loadError instanceof Error
@@ -267,95 +173,53 @@ function LocationsInner() {
     };
   }, []);
 
-  // ==================================================
-  // LOAD AVAILABILITY
-  // ==================================================
-
   useEffect(() => {
-    if (locations.length === 0) {
-      return;
-    }
+    if (locations.length === 0) return;
 
     let cancelled = false;
 
     async function loadAvailability() {
       try {
         setLoadingAvailability(true);
-
-        const nextAvailability: Record<
-          string,
-          number
-        > = {};
+        const nextAvailability: Record<string, number> = {};
 
         await Promise.all(
-          locations.map(
-            async (location) => {
-              try {
-                const params =
-                  new URLSearchParams({
-                    locationId:
-                      location.id,
+          locations.map(async (location) => {
+            try {
+              const params = new URLSearchParams({
+                locationId: location.id,
+                dropoffDate,
+                dropoffTime,
+                pickupDate,
+                pickupTime,
+              });
 
-                    dropoffDate,
-                    dropoffTime,
+              const response = await fetch(
+                `/api/locations/availability?${params.toString()}`,
+                { cache: "no-store" }
+              );
 
-                    pickupDate,
-                    pickupTime,
-                  });
+              const result = await response.json();
 
-                const response =
-                  await fetch(
-                    `/api/locations/availability?${params.toString()}`,
-                    {
-                      cache: "no-store",
-                    }
-                  );
-
-                const result =
-                  await response.json();
-
-                if (
-                  response.ok &&
-                  result.ok
-                ) {
-                  nextAvailability[
-                    location.id
-                  ] = Number(
-                    result.availableBags
-                  );
-                } else {
-                  nextAvailability[
-                    location.id
-                  ] = Number(
-                    location.capacity
-                  );
-                }
-              } catch {
-                nextAvailability[
-                  location.id
-                ] = Number(
-                  location.capacity
-                );
+              if (response.ok && result.ok) {
+                nextAvailability[location.id] = Number(result.availableBags);
+              } else {
+                nextAvailability[location.id] = Number(location.capacity);
               }
+            } catch {
+              nextAvailability[location.id] = Number(location.capacity);
             }
-          )
+          })
         );
 
         if (!cancelled) {
-          setAvailability(
-            nextAvailability
-          );
+          setAvailability(nextAvailability);
         }
       } catch (availabilityError) {
-        console.error(
-          "Availability loading error:",
-          availabilityError
-        );
+        console.error("Availability loading error:", availabilityError);
       } finally {
         if (!cancelled) {
-          setLoadingAvailability(
-            false
-          );
+          setLoadingAvailability(false);
         }
       }
     }
@@ -365,115 +229,59 @@ function LocationsInner() {
     return () => {
       cancelled = true;
     };
-  }, [
-    locations,
-    dropoffDate,
-    dropoffTime,
-    pickupDate,
-    pickupTime,
-  ]);
+  }, [locations, dropoffDate, dropoffTime, pickupDate, pickupTime]);
 
-  // ==================================================
-  // LOCATIONS WITH AVAILABILITY
-  // ==================================================
-
-  const locationsWithAvailability =
-    useMemo(() => {
-      return locations.map(
-        (location) => ({
-          ...location,
-
-          availableBags:
-            availability[
-              location.id
-            ] ??
-            location.availableBags,
-        })
-      );
-    }, [
-      locations,
-      availability,
-    ]);
-
-  // ==================================================
-  // CITY FILTER
-  // ==================================================
+  const locationsWithAvailability = useMemo(() => {
+    return locations.map((location) => ({
+      ...location,
+      availableBags: availability[location.id] ?? location.availableBags,
+    }));
+  }, [locations, availability]);
 
   const cityLocations = useMemo(() => {
-    return locationsWithAvailability.filter(
-      (location) =>
+    return locationsWithAvailability.filter((location) => {
+      const matchesCity =
         location.city.trim().toLowerCase() ===
-        selectedCity.trim().toLowerCase()
-    );
-  }, [
-    locationsWithAvailability,
-    selectedCity,
-  ]);
+        selectedCity.trim().toLowerCase();
+      if (!searchFilter.trim()) return matchesCity;
 
-  // ==================================================
-  // MAP DATA
-  //
-  // MapSection expects its own MapLocation[]
-  // structure. Keep this adapter here so the
-  // customer Location type and map type stay separate.
-  // ==================================================
+      const q = searchFilter.toLowerCase();
+      const matchesSearch =
+        location.name.toLowerCase().includes(q) ||
+        location.address.toLowerCase().includes(q) ||
+        location.city.toLowerCase().includes(q);
 
-  const mapLocations =
-    useMemo(() => {
-      return cityLocations.map(
-        (location) => ({
-          ...location,
+      return matchesCity && matchesSearch;
+    });
+  }, [locationsWithAvailability, selectedCity, searchFilter]);
 
-          locationId:
-            location.id,
-
-          locationName:
-            location.name,
-
-          latitude:
-            location.lat,
-
-          longitude:
-            location.lng,
-
-          pricePerBag:
-            location.pricePerBagPerDay,
-
-          price_per_bag:
-            location.pricePerBagPerDay,
-
-          opening_time:
-            location.hours.open,
-
-          closing_time:
-            location.hours.close,
-
-          available_bags:
-            location.availableBags,
-
-          google_maps_url:
-            location.googleMapsUrl,
-
-          yandex_maps_url:
-            location.yandexMapsUrl,
-        })
-      );
-    }, [cityLocations]);
-
-  // ==================================================
-  // LOADING
-  // ==================================================
+  const mapLocations = useMemo(() => {
+    return cityLocations.map((location) => ({
+      ...location,
+      locationId: location.id,
+      locationName: location.name,
+      latitude: location.lat,
+      longitude: location.lng,
+      pricePerBag: location.pricePerBagPerDay,
+      price_per_bag: location.pricePerBagPerDay,
+      opening_time: location.hours.open,
+      closing_time: location.hours.close,
+      available_bags: location.availableBags,
+      google_maps_url: location.googleMapsUrl,
+      yandex_maps_url: location.yandexMapsUrl,
+    }));
+  }, [cityLocations]);
 
   if (loading) {
     return (
-      <main className="max-w-[1140px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
-        <div className="mb-8">
-          <Skeleton className="h-9 w-64 mb-3 rounded-lg" />
-          <Skeleton className="h-4 w-96 rounded" />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="mb-8 space-y-3">
+          <div className="h-8 w-64 bg-slate-200 animate-pulse rounded-xl" />
+          <div className="h-4 w-96 bg-slate-200/70 animate-pulse rounded-lg" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="lg:col-span-7 grid grid-cols-1 gap-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <LocationCardSkeleton key={i} />
             ))}
@@ -487,29 +295,23 @@ function LocationsInner() {
     );
   }
 
-  // ==================================================
-  // ERROR
-  // ==================================================
-
   if (error) {
     return (
-      <main className="max-w-[1100px] mx-auto px-6 py-16">
-        <div className="rounded-xl border border-red-200 bg-red-50 p-6">
-          <h1 className="font-slab font-bold text-xl text-red-800">
+      <main className="max-w-3xl mx-auto px-6 py-20">
+        <div className="rounded-3xl border border-red-200 bg-red-50/80 p-8 text-center backdrop-blur-sm">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-red-100 flex items-center justify-center text-red-600 mb-4">
+            ⚠️
+          </div>
+          <h1 className="font-display font-bold text-2xl text-red-900">
             {t.locationsPage.loadErrorTitle}
           </h1>
-
-          <p className="text-sm text-red-700 mt-2">
-            {error}
-          </p>
-
+          <p className="text-sm text-red-700 mt-2 max-w-md mx-auto">{error}</p>
           <button
             type="button"
-            onClick={() =>
-              window.location.reload()
-            }
-            className="btn-primary mt-5"
+            onClick={() => window.location.reload()}
+            className="mt-6 inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-3 rounded-2xl shadow-sm transition-all"
           >
+            <RefreshCw className="w-4 h-4" />
             {t.common.tryAgain}
           </button>
         </div>
@@ -517,116 +319,77 @@ function LocationsInner() {
     );
   }
 
-  // ==================================================
-  // PAGE
-  // ==================================================
-
   return (
     <main className="min-h-screen bg-cream">
-
-      {/* ============================================
-          PAGE HEADER
-      ============================================ */}
-
-      <section className="border-b border-line bg-cream">
-        <div className="max-w-[1100px] mx-auto px-6 pt-10 pb-7">
-
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-clay mb-2">
-                BagDrop Uzbekistan
-              </p>
-
-              <h1 className="font-slab font-bold text-3xl sm:text-4xl text-ink">
+      {/* PAGE HEADER */}
+      <section className="relative bg-white border-b border-line overflow-hidden pt-10 pb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-start justify-between gap-6 flex-wrap">
+            <div className="space-y-2">
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-brand-600 bg-brand-50 border border-brand-200/60 px-3 py-1 rounded-full">
+                <Compass className="w-3.5 h-3.5" />
+                Luggage Storage Hub
+              </span>
+              <h1 className="font-display font-black text-3xl sm:text-5xl text-ink">
                 {t.locationsPage.title}
               </h1>
-
-              <p className="text-sm sm:text-base text-ink-soft mt-3 max-w-2xl leading-6">
+              <p className="text-sm sm:text-base text-ink-soft max-w-2xl font-normal leading-relaxed">
                 {t.locationsPage.description}
               </p>
             </div>
 
-            <DemoBadge
-              label={t.locationsPage.liveLocations}
-            />
-
+            <DemoBadge label={t.locationsPage.liveLocations} />
           </div>
 
-          {/* CITY SELECTOR */}
-
-          <div className="mt-7">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-soft mb-2.5">
-              {t.locationsPage.chooseCity}
-            </p>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {/* CITY TABS WITH FRAMER MOTION INDICATOR */}
+          <div className="mt-8">
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
               {CITY_OPTIONS.map((city) => {
-                const cityCount =
-                  locationsWithAvailability.filter(
-                    (location) =>
-                      location.city.trim().toLowerCase() ===
-                      city.toLowerCase()
-                  ).length;
+                const cityCount = locationsWithAvailability.filter(
+                  (location) =>
+                    location.city.trim().toLowerCase() === city.toLowerCase()
+                ).length;
 
-                const active =
-                  selectedCity.toLowerCase() ===
-                  city.toLowerCase();
+                const active = selectedCity.toLowerCase() === city.toLowerCase();
 
                 return (
                   <button
                     key={city}
                     type="button"
-                    onClick={() =>
-                      setSelectedCity(city)
-                    }
-                    className={`rounded-xl border px-4 py-3 text-sm font-semibold transition text-left ${
+                    onClick={() => setSelectedCity(city)}
+                    className={`relative px-5 py-3 rounded-2xl text-sm font-bold transition-all duration-200 flex items-center gap-3 shrink-0 ${
                       active
-                        ? "border-teal bg-teal text-white shadow-sm"
-                        : "border-line bg-white text-ink hover:border-teal/50 hover:bg-sand"
+                        ? "text-white bg-slate-900 shadow-card-hover"
+                        : "text-slate-600 bg-slate-100 hover:bg-slate-200/80 hover:text-slate-900"
                     }`}
                   >
-                    <span className="block">
-                      {cityLabels[city]}
-                    </span>
-
+                    <Building className="w-4 h-4 opacity-70" />
+                    <span>{cityLabels[city]}</span>
                     <span
-                      className={`block mt-0.5 text-[10px] font-medium ${
+                      className={`text-xs px-2 py-0.5 rounded-full font-bold ${
                         active
-                          ? "text-white/75"
-                          : "text-ink-soft"
+                          ? "bg-brand-500 text-white"
+                          : "bg-slate-200 text-slate-700"
                       }`}
                     >
-                      {cityCount}{" "}
-                      {cityCount === 1
-                        ? t.locationsPage.locationSingular
-                        : t.locationsPage.locationPlural}
+                      {cityCount}
                     </span>
                   </button>
                 );
               })}
             </div>
           </div>
-
         </div>
       </section>
 
-      {/* ============================================
-          CONTENT
-      ============================================ */}
-
-      <section className="max-w-[1100px] mx-auto px-6 py-7">
-
-        {/* RESULT BAR */}
-
-        <div className="flex items-center justify-between gap-4 mb-4">
-
+      {/* LOCATIONS LIST + MAP */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h2 className="font-slab font-bold text-xl">
+            <h2 className="font-display font-extrabold text-2xl text-ink">
               {cityLabels[selectedCity]} {t.locationsPage.locationsTitleSuffix}
             </h2>
-
-            <p className="text-xs text-ink-soft mt-1">
+            <p className="text-xs sm:text-sm text-ink-soft mt-0.5">
               {cityLocations.length}{" "}
               {cityLocations.length === 1
                 ? t.locationsPage.locationSingular
@@ -636,311 +399,171 @@ function LocationsInner() {
           </div>
 
           {loadingAvailability && (
-            <div className="flex items-center gap-2 text-xs text-ink-soft">
-              <span className="w-3 h-3 border-2 border-line border-t-teal rounded-full animate-spin" />
-              {t.locationsPage.updatingAvailability}
+            <div className="flex items-center gap-2 text-xs font-semibold text-brand-600 bg-brand-50 px-3 py-1.5 rounded-full border border-brand-200">
+              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              <span>{t.locationsPage.updatingAvailability}</span>
             </div>
           )}
-
         </div>
 
-        {/* EMPTY */}
-
-        {cityLocations.length === 0 && (
-          <div className="bg-white border border-line rounded-2xl px-6 py-14 text-center">
-
-            <div className="w-12 h-12 mx-auto rounded-full bg-sand flex items-center justify-center mb-4">
-              <svg
-                className="w-5 h-5 text-ink-soft"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-              >
-                <path d="M12 21s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12Z" />
-                <circle cx="12" cy="9" r="2.2" />
-              </svg>
+        {cityLocations.length === 0 ? (
+          <div className="bg-white border border-line rounded-3xl p-12 text-center max-w-lg mx-auto shadow-card-modern">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-50 flex items-center justify-center text-3xl mb-4">
+              🏛️
             </div>
-
-            <h3 className="font-semibold text-base">
+            <h3 className="font-display font-bold text-xl text-ink">
               {t.locationsPage.noLocations}
             </h3>
-
-            <p className="text-sm text-ink-soft mt-1">
-              {t.locationsPage.preparingLocations}{" "}
-              {cityLabels[selectedCity]}. {t.locationsPage.checkBackSoon}
+            <p className="text-sm text-ink-soft mt-2 leading-relaxed">
+              {t.locationsPage.preparingLocations} {cityLabels[selectedCity]}.{" "}
+              {t.locationsPage.checkBackSoon}
             </p>
-
           </div>
-        )}
-
-        {/* LOCATIONS + MAP */}
-
-        {cityLocations.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-6 items-start">
-
-            {/* ======================================
-                LOCATION LIST
-            ====================================== */}
-
-            <div className="space-y-3">
-
-              {cityLocations.map(
-                (location) => {
-                  const available =
-                    Number(
-                      location.availableBags
-                    );
-
-                  const isAvailable =
-                    available > 0;
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            {/* Location Cards List */}
+            <div className="lg:col-span-7 space-y-4">
+              <AnimatePresence>
+                {cityLocations.map((location, idx) => {
+                  const available = Number(location.availableBags);
+                  const isAvailable = available > 0;
 
                   return (
-                    <Link
+                    <motion.div
                       key={location.id}
-                      href={`/locations/${location.slug}`}
-                      className="group block bg-white border border-line rounded-2xl overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lg"
+                      initial={{ opacity: 0, y: 16 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -16 }}
+                      transition={{ duration: 0.35, delay: idx * 0.05 }}
                     >
-
-                      <div className="flex">
-
-                        {/* COLOR STRIPE */}
-
-                        <div
-                          className="w-1.5 shrink-0"
-                          style={{
-                            background:
-                              location.color,
-                          }}
-                        />
-
-                        <div className="p-4 sm:p-5 flex-1 min-w-0">
-
-                          {/* TITLE */}
-
-                          <div className="flex items-start justify-between gap-3">
-
-                            <div className="min-w-0">
-
+                      <Link
+                        href={`/locations/${location.slug}`}
+                        className="group relative block bg-white border border-line hover:border-brand-500/40 rounded-3xl overflow-hidden shadow-card-modern hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1"
+                      >
+                        <div className="p-6">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="space-y-1">
                               <div className="flex items-center gap-2">
-
                                 <span
-                                  className={`w-2 h-2 rounded-full shrink-0 ${
-                                    isAvailable
-                                      ? "bg-ok"
-                                      : "bg-red-500"
+                                  className={`w-2 h-2 rounded-full ${
+                                    isAvailable ? "bg-emerald-500 animate-pulse" : "bg-rose-500"
                                   }`}
                                 />
-
-                                <h3 className="font-semibold text-[15px] truncate">
-                                  {
-                                    location.name
-                                  }
+                                <h3 className="font-display font-bold text-lg text-ink group-hover:text-brand-600 transition-colors">
+                                  {location.name}
                                 </h3>
-
                               </div>
-
-                              <p className="text-xs text-ink-soft mt-1">
-                                {
-                                  location.city
-                                }
+                              <p className="flex items-center gap-1.5 text-xs text-ink-soft font-normal">
+                                <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <span>{location.address}</span>
                               </p>
-
                             </div>
 
                             <span
-                              className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold ${
+                              className={`shrink-0 inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full border ${
                                 isAvailable
-                                  ? "bg-[#e6f6ee] text-ok"
-                                  : "bg-red-50 text-red-600"
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  : "bg-rose-50 text-rose-700 border-rose-200"
                               }`}
                             >
+                              <Luggage className="w-3 h-3" />
                               {isAvailable
                                 ? `${available} ${t.locationsPage.free}`
                                 : t.locationsPage.full}
                             </span>
-
                           </div>
 
-                          {/* ADDRESS */}
-
-                          <p className="text-xs text-ink-soft mt-2 leading-5">
-                            {
-                              location.address
-                            }
-                          </p>
-
-                          {/* INFO */}
-
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4">
-
-                            <div className="rounded-lg bg-sand px-3 py-2.5">
-
-                              <span className="block text-[10px] uppercase tracking-wide text-ink-soft">
+                          {/* Info Chips */}
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-5">
+                            <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3">
+                              <span className="block text-[10px] uppercase font-bold tracking-wider text-slate-400">
                                 {t.locationsPage.price}
                               </span>
-
-                              <span className="block mt-0.5 text-sm font-semibold">
-                                {formatMoney(
-                                  PRICE_UP_TO_12_HOURS
-                                )}
+                              <span className="block font-display font-bold text-sm text-ink mt-0.5">
+                                {formatMoney(PRICE_UP_TO_12_HOURS)}
                               </span>
-
-                              <span className="block text-[10px] text-ink-soft">
+                              <span className="block text-[10px] text-slate-400">
                                 {t.locationsPage.upTo12Hours}
                               </span>
-
-                              <span className="block mt-1 text-[11px] font-semibold text-ink">
-                                {formatMoney(
-                                  PRICE_UP_TO_24_HOURS
-                                )}{" "}
-                                <span className="font-normal text-ink-soft">
-                                  {t.locationsPage.per24Hours}
-                                </span>
-                              </span>
-
                             </div>
 
-                            <div className="rounded-lg bg-sand px-3 py-2.5">
-
-                              <span className="block text-[10px] uppercase tracking-wide text-ink-soft">
+                            <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3">
+                              <span className="block text-[10px] uppercase font-bold tracking-wider text-slate-400">
                                 {t.locationsPage.hours}
                               </span>
-
-                              <span className="block mt-0.5 text-sm font-semibold">
-                                {
-                                  location.hours
-                                    .open
-                                }
-                                {" – "}
-                                {
-                                  location.hours
-                                    .close
-                                }
+                              <span className="block font-display font-bold text-sm text-ink mt-0.5">
+                                {location.hours.open} – {location.hours.close}
                               </span>
-
-                              <span className="block text-[10px] text-ink-soft">
+                              <span className="block text-[10px] text-slate-400">
                                 {t.locationsPage.daily}
                               </span>
-
                             </div>
 
-                            <div className="rounded-lg bg-sand px-3 py-2.5 col-span-2 sm:col-span-1">
-
-                              <span className="block text-[10px] uppercase tracking-wide text-ink-soft">
+                            <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 col-span-2 sm:col-span-1">
+                              <span className="block text-[10px] uppercase font-bold tracking-wider text-slate-400">
                                 {t.locationsPage.capacity}
                               </span>
-
-                              <span className="block mt-0.5 text-sm font-semibold">
-                                {
-                                  location.capacity
-                                }{" "}
-                                {t.locationsPage.bags}
+                              <span className="block font-display font-bold text-sm text-ink mt-0.5">
+                                {location.capacity} {t.locationsPage.bags}
                               </span>
-
-                              <span className="block text-[10px] text-ink-soft">
+                              <span className="block text-[10px] text-slate-400">
                                 {t.locationsPage.totalStorage}
                               </span>
-
                             </div>
-
                           </div>
 
-                          {/* FOOTER */}
-
-                          <div className="flex items-center justify-between mt-4 pt-3 border-t border-line">
-
-                            <div className="flex items-center gap-2 text-xs font-semibold">
-
-                              <span
-                                className={`w-1.5 h-1.5 rounded-full ${
-                                  isAvailable
-                                    ? "bg-ok"
-                                    : "bg-red-500"
-                                }`}
-                              />
-
-                              <span
-                                className={
-                                  isAvailable
-                                    ? "text-ok"
-                                    : "text-red-600"
-                                }
-                              >
-                                {isAvailable
-                                  ? t.locationsPage.available
-                                  : t.locationsPage.currentlyFull}
-                              </span>
-
+                          {/* Footer */}
+                          <div className="flex items-center justify-between mt-5 pt-4 border-t border-slate-100">
+                            <div className="flex items-center gap-2 text-xs font-semibold text-teal-700">
+                              <ShieldCheck className="w-4 h-4 text-teal-600" />
+                              <span>Insured & Monitored</span>
                             </div>
 
-                            <span className="text-xs text-ink-soft group-hover:text-teal transition-colors">
-                              {t.locationsPage.viewDetails}
+                            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-600 group-hover:translate-x-1 transition-transform">
+                              <span>{t.locationsPage.viewDetails}</span>
+                              <ArrowRight className="w-3.5 h-3.5" />
                             </span>
-
                           </div>
-
                         </div>
-
-                      </div>
-
-                    </Link>
+                      </Link>
+                    </motion.div>
                   );
-                }
-              )}
-
+                })}
+              </AnimatePresence>
             </div>
 
-            {/* ======================================
-                REAL MAP
-            ====================================== */}
-
-            <div className="lg:sticky lg:top-24">
-
-              <div className="bg-white border border-line rounded-2xl overflow-hidden shadow-sm">
-
-                <div className="px-4 py-3 border-b border-line">
-
-                  <div className="flex items-center justify-between gap-3">
-
-                    <div>
-                      <h3 className="font-semibold text-sm">
-                        {t.locationsPage.mapTitle}
-                      </h3>
-
-                      <p className="text-xs text-ink-soft mt-0.5">
-                        {cityLocations.length}{" "}
-                        {t.locationsPage.locationsOnMap}
-                      </p>
-                    </div>
-
-                    <span className="flex items-center gap-1.5 text-[10px] font-semibold text-ok">
-                      <span className="w-2 h-2 rounded-full bg-ok" />
-                      {t.locationsPage.live}
-                    </span>
-
+            {/* Sticky RealMap */}
+            <div className="lg:col-span-5 lg:sticky lg:top-24">
+              <div className="bg-white border border-line rounded-3xl p-2 shadow-card-modern">
+                <div className="px-4 py-3 flex items-center justify-between border-b border-line mb-2">
+                  <div className="flex items-center gap-2">
+                    <Compass className="w-4 h-4 text-brand-500" />
+                    <h3 className="font-display font-bold text-sm text-ink">
+                      {t.locationsPage.mapTitle}
+                    </h3>
                   </div>
-
+                  <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    {cityLocations.length} on map
+                  </span>
                 </div>
 
-                <MapSection
-                  locations={
-                    mapLocations as any
-                  }
-                />
-
+                <MapSection locations={mapLocations as any} />
               </div>
-
             </div>
 
           </div>
         )}
-
       </section>
     </main>
   );
 }
 
 export default function LocationsPage() {
-  return <LocationsInner />;
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-cream" />}>
+      <LocationsContent />
+    </Suspense>
+  );
 }

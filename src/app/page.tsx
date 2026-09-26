@@ -3,11 +3,28 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 
 import MapSection from "@/components/MapSection";
 import { MapSkeleton } from "@/components/Skeleton";
 import { useLanguage } from "@/lib/i18n";
 import { LOCATIONS } from "@/lib/mockData";
+import {
+  Luggage,
+  Search,
+  MapPin,
+  ShieldCheck,
+  QrCode,
+  Tag,
+  CreditCard,
+  Sparkles,
+  ChevronDown,
+  ArrowRight,
+  Clock,
+  Compass,
+  CheckCircle2,
+  Check,
+} from "lucide-react";
 
 type ApiLocation = {
   id: string;
@@ -52,7 +69,7 @@ export default function HomePage() {
   const { t } = useLanguage();
 
   const [query, setQuery] = useState("");
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   const [locations, setLocations] = useState<ApiLocation[]>(initialApiLocations);
   const [locationsLoading, setLocationsLoading] = useState(false);
@@ -104,175 +121,256 @@ export default function HomePage() {
 
   const activeLocations = locations.filter((loc) => loc.active);
 
-  return (
-    <div className="flex flex-col min-h-screen">
-      {/* HERO SECTION */}
-      <section className="relative bg-ink text-white overflow-hidden py-16 sm:py-24">
-        {/* Subtle Geometric Background */}
-        <div
-          className="absolute inset-0 opacity-[0.07] pointer-events-none"
-          style={{
-            backgroundImage:
-              "radial-gradient(#ffffff 1px, transparent 1px), radial-gradient(#ffffff 1px, #1b2a3a 1px)",
-            backgroundSize: "28px 28px",
-            backgroundPosition: "0 0, 14px 14px",
-          }}
-        />
+  const steps = [
+    { title: t.homePage.step1, icon: Search },
+    { title: t.homePage.step2, icon: CreditCard },
+    { title: t.homePage.step3, icon: Luggage },
+    { title: t.homePage.step4, icon: Compass },
+    { title: t.homePage.step5, icon: QrCode },
+    { title: t.homePage.step6, icon: CheckCircle2 },
+  ];
 
-        <div className="relative max-w-[1140px] mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-            {/* Left Column: Heading and CTA */}
-            <div className="lg:col-span-7">
-              {/* Live Badge */}
-              <div className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/15 border border-white/20 rounded-full px-4 py-1.5 text-xs sm:text-sm font-medium mb-6 backdrop-blur-sm transition-colors">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                <span>📍 {t.homePage.liveNow}</span>
-                <span className="font-bold text-clay ml-1">{t.homePage.samarkand}</span>
+  const valueProps = [
+    {
+      icon: ShieldCheck,
+      color: "from-teal-500/20 to-emerald-500/20 text-teal-600",
+      title: t.homePage.verifiedPartners,
+      body: t.homePage.verifiedPartnersText,
+    },
+    {
+      icon: QrCode,
+      color: "from-brand-500/20 to-amber-500/20 text-brand-600",
+      title: t.homePage.qrCheckin,
+      body: t.homePage.qrCheckinText,
+    },
+    {
+      icon: Tag,
+      color: "from-purple-500/20 to-pink-500/20 text-purple-600",
+      title: t.homePage.luggageTags,
+      body: t.homePage.luggageTagsText,
+    },
+    {
+      icon: CreditCard,
+      color: "from-blue-500/20 to-cyan-500/20 text-blue-600",
+      title: t.homePage.securePayment,
+      body: t.homePage.securePaymentText,
+    },
+  ];
+
+  const faqs = [
+    { q: t.homePage.faq1q, a: t.homePage.faq1a },
+    { q: t.homePage.faq2q, a: t.homePage.faq2a },
+    { q: t.homePage.faq3q, a: t.homePage.faq3a },
+    { q: t.homePage.faq4q, a: t.homePage.faq4a },
+  ];
+
+  return (
+    <div className="flex flex-col min-h-screen overflow-x-hidden">
+      {/* HERO SECTION */}
+      <section className="relative bg-ink-deep text-white overflow-hidden pt-12 pb-24 sm:pt-20 sm:pb-32">
+        {/* Animated Glow Background Orbs */}
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-brand-500/15 rounded-full blur-3xl pointer-events-none animate-pulse-glow" />
+        <div className="absolute top-1/3 right-10 w-[500px] h-[500px] bg-teal-500/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-20 left-1/2 -translate-x-1/2 w-3/4 h-32 bg-brand-500/10 blur-2xl pointer-events-none" />
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            
+            {/* Left Column: Heading & Calls to Action */}
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              className="lg:col-span-7 space-y-6"
+            >
+              {/* Live Status Pill */}
+              <div className="inline-flex items-center gap-2.5 bg-white/10 hover:bg-white/15 border border-white/20 rounded-full px-4 py-1.5 text-xs sm:text-sm font-medium backdrop-blur-md transition-all shadow-glow-brand">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                </span>
+                <span className="text-slate-200">📍 {t.homePage.liveNow}</span>
+                <span className="font-bold text-brand-400 bg-brand-500/20 px-2 py-0.5 rounded-full">
+                  {t.homePage.samarkand}
+                </span>
               </div>
 
-              {/* Heading */}
-              <h1 className="font-slab font-bold text-3xl sm:text-5xl lg:text-6xl tracking-tight leading-[1.08]">
+              {/* Main Headline */}
+              <h1 className="font-display font-black text-4xl sm:text-6xl lg:text-7xl tracking-tight leading-[1.08] text-white">
                 {t.homePage.heroTitle}
               </h1>
 
-              {/* Subtitle */}
-              <p className="mt-5 text-base sm:text-lg text-slate-300 max-w-xl leading-relaxed">
+              {/* Subheading */}
+              <p className="text-base sm:text-xl text-slate-300 max-w-2xl leading-relaxed font-normal">
                 {t.homePage.heroDescription}
               </p>
 
-              {/* Actions & Trust Badges */}
-              <div className="flex flex-wrap items-center gap-4 mt-8">
+              {/* CTAs */}
+              <div className="flex flex-wrap items-center gap-4 pt-4">
                 <Link
                   href="/locations"
-                  className="inline-flex items-center gap-2 bg-clay hover:bg-clay-dark text-white font-semibold rounded-xl px-7 py-3.5 text-base shadow-lg shadow-clay/20 hover:shadow-xl transition-all duration-200 active:scale-95 animate-pulse-glow"
+                  className="inline-flex items-center gap-2.5 bg-gradient-to-r from-brand-500 via-brand-600 to-amber-500 hover:from-brand-600 hover:to-amber-600 text-white font-bold rounded-2xl px-8 py-4 text-base shadow-glow-brand hover:shadow-xl transition-all duration-300 active:scale-95"
                 >
-                  <span>🧳</span>
+                  <Luggage className="w-5 h-5 stroke-[2.2]" />
                   <span>{t.homePage.findStorage}</span>
+                  <ArrowRight className="w-5 h-5" />
                 </Link>
 
                 <a
                   href="#how"
-                  className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/30 text-white font-medium rounded-xl px-6 py-3.5 text-base backdrop-blur-xs transition-colors"
+                  className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/15 border border-white/20 text-white font-semibold rounded-2xl px-6 py-4 text-base backdrop-blur-md transition-all hover:border-white/40"
                 >
                   <span>{t.homePage.howItWorks}</span>
-                  <span>↓</span>
+                  <ChevronDown className="w-4 h-4 animate-bounce" />
                 </a>
               </div>
-            </div>
+            </motion.div>
 
-            {/* Right Column: Animated Live Ticket Showcase */}
-            <div className="lg:col-span-5 hidden lg:block">
+            {/* Right Column: Interactive Digital Pass Showcase */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.7, delay: 0.2, ease: "easeOut" }}
+              className="lg:col-span-5 hidden lg:block"
+            >
               <div className="relative animate-float">
-                {/* Glow backdrop */}
-                <div className="absolute -inset-1 bg-gradient-to-r from-clay to-teal rounded-3xl blur-xl opacity-30 animate-pulse" />
+                {/* Glow backlight */}
+                <div className="absolute -inset-2 bg-gradient-to-tr from-brand-500 to-teal-400 rounded-4xl blur-2xl opacity-40 animate-pulse" />
 
-                {/* Ticket Card */}
-                <div className="relative bg-white/95 backdrop-blur-md border border-white/40 text-ink rounded-3xl p-6 shadow-2xl">
-                  <div className="flex items-center justify-between border-b border-line/60 pb-4 mb-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-clay/10 text-clay flex items-center justify-center font-bold text-base">
-                        🧳
+                {/* Modern Digital Luggage Pass Card */}
+                <div className="relative bg-white text-ink rounded-3xl p-7 shadow-ticket border border-white/80 overflow-hidden">
+                  {/* Decorative Background Watermark */}
+                  <div className="absolute -bottom-10 -right-10 text-slate-100 opacity-40 pointer-events-none">
+                    <Luggage className="w-48 h-48" />
+                  </div>
+
+                  {/* Header */}
+                  <div className="flex items-center justify-between border-b border-line pb-4 mb-5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-500 to-amber-400 flex items-center justify-center text-white shadow-sm">
+                        <Luggage className="w-5 h-5 stroke-[2.2]" />
                       </div>
                       <div>
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-clay block">
-                          BagDrop Instant Ticket
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-brand-600 block">
+                          BagDrop Digital Pass
                         </span>
-                        <span className="font-slab font-bold text-sm text-ink">
+                        <span className="font-display font-bold text-base text-ink">
                           BD-2026-SAMARKAND
                         </span>
                       </div>
                     </div>
-                    <span className="inline-flex items-center gap-1 bg-ok-bg text-ok text-[11px] font-bold px-2.5 py-1 rounded-full">
-                      <span className="w-1.5 h-1.5 rounded-full bg-ok animate-ping" />
+
+                    <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs font-bold px-3 py-1 rounded-full border border-emerald-200">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                       Active
                     </span>
                   </div>
 
-                  <div className="space-y-2.5 text-xs text-ink-soft">
-                    <div className="flex justify-between py-1 border-b border-line/30">
-                      <span>Location</span>
-                      <b className="text-ink">Registan Square Central</b>
+                  {/* Pass Body Details */}
+                  <div className="space-y-3 text-xs text-ink-soft">
+                    <div className="flex justify-between items-center py-1.5 border-b border-line/50">
+                      <span className="font-medium">Drop Location</span>
+                      <b className="text-ink font-semibold">Registan Square Central</b>
                     </div>
-                    <div className="flex justify-between py-1 border-b border-line/30">
-                      <span>Luggage Protected</span>
-                      <b className="text-ink">2 Bags • $500 Guarantee</b>
+                    <div className="flex justify-between items-center py-1.5 border-b border-line/50">
+                      <span className="font-medium">Luggage Cover</span>
+                      <b className="text-ink font-semibold">2 Bags • $500 Guarantee</b>
                     </div>
-                    <div className="flex justify-between py-1">
-                      <span>Security Seal</span>
-                      <b className="text-teal font-semibold">✓ Verified QR Pass</b>
+                    <div className="flex justify-between items-center py-1.5">
+                      <span className="font-medium">Security Seal</span>
+                      <b className="text-teal-600 font-bold flex items-center gap-1">
+                        <Check className="w-3.5 h-3.5" /> Verified QR Check-in
+                      </b>
                     </div>
                   </div>
 
-                  <div className="mt-4 pt-4 border-t-2 border-dashed border-line/60 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1.5 text-ink-soft">
-                      <span>🕒</span> Open 08:00 - 22:00
+                  {/* Perforated Divider */}
+                  <div className="relative my-4 flex items-center justify-between">
+                    <div className="w-full border-t-2 border-dashed border-line/80" />
+                  </div>
+
+                  {/* Pass Footer */}
+                  <div className="flex items-center justify-between pt-1">
+                    <div className="flex items-center gap-2 text-xs text-ink-soft">
+                      <Clock className="w-4 h-4 text-brand-500" />
+                      <span>08:00 – 22:00 Daily</span>
                     </div>
-                    <span className="font-slab font-bold text-base text-clay">
-                      40,000 UZS <span className="text-[10px] font-sans font-normal text-ink-soft">/day</span>
-                    </span>
+                    <div className="text-right">
+                      <span className="text-[10px] uppercase tracking-wider text-slate-400 block font-bold">Price</span>
+                      <span className="font-display font-black text-lg text-brand-600">
+                        40,000 <span className="text-xs font-sans font-semibold text-slate-500">UZS / day</span>
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
+
           </div>
 
-          {/* Key Metric Highlights */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-12 pt-8 border-t border-white/15 max-w-4xl">
-            <div>
-              <div className="font-slab font-bold text-2xl sm:text-3xl text-white">100%</div>
-              <div className="text-xs sm:text-sm text-slate-400">Verified locations</div>
-            </div>
-            <div>
-              <div className="font-slab font-bold text-2xl sm:text-3xl text-white">Instant</div>
-              <div className="text-xs sm:text-sm text-slate-400">QR check-in & out</div>
-            </div>
-            <div>
-              <div className="font-slab font-bold text-2xl sm:text-3xl text-white">Insured</div>
-              <div className="text-xs sm:text-sm text-slate-400">Security guarantee</div>
-            </div>
-            <div>
-              <div className="font-slab font-bold text-2xl sm:text-3xl text-white">24/7</div>
-              <div className="text-xs sm:text-sm text-slate-400">Customer assistance</div>
-            </div>
+          {/* Key Metric Counters */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-16 pt-10 border-t border-white/15">
+            {[
+              { stat: "100%", label: "Verified Locations", desc: "Hand-picked storage partners" },
+              { stat: "< 2 min", label: "Instant Booking", desc: "No paper, QR check-in & out" },
+              { stat: "$500+", label: "Luggage Guarantee", desc: "Comprehensive item insurance" },
+              { stat: "24/7", label: "Customer Care", desc: "Telegram & WhatsApp support" },
+            ].map((m, idx) => (
+              <motion.div
+                key={m.label}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 * idx }}
+                className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-xs"
+              >
+                <div className="font-display font-black text-2xl sm:text-3xl text-white">
+                  {m.stat}
+                </div>
+                <div className="text-xs sm:text-sm font-bold text-brand-400 mt-0.5">{m.label}</div>
+                <div className="text-[11px] text-slate-400 mt-0.5">{m.desc}</div>
+              </motion.div>
+            ))}
           </div>
+
         </div>
       </section>
 
       {/* FLOATING SEARCH BAR */}
-      <section className="relative max-w-[1140px] mx-auto px-4 sm:px-6 -mt-8 z-10 w-full">
+      <section className="relative max-w-5xl mx-auto px-4 sm:px-6 -mt-8 z-20 w-full">
         <form
           onSubmit={handleSearch}
-          className="bg-white rounded-2xl shadow-xl shadow-black/10 border border-line p-3 sm:p-4 flex flex-col sm:flex-row gap-3 items-center"
+          className="glass-panel rounded-3xl p-3 sm:p-4 flex flex-col sm:flex-row gap-3 items-center shadow-2xl border border-line"
         >
-          <div className="flex-1 flex items-center gap-3 w-full px-3 py-2 bg-cream/50 rounded-xl border border-line/50 focus-within:border-teal focus-within:bg-white transition-all">
-            <span className="text-lg text-ink-soft">📍</span>
+          <div className="flex-1 flex items-center gap-3 w-full px-4 py-3 bg-slate-50 rounded-2xl border border-slate-200/70 focus-within:border-brand-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-brand-500/20 transition-all">
+            <MapPin className="w-5 h-5 text-brand-500 shrink-0" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               type="text"
               placeholder={t.homePage.searchPlaceholder}
-              className="w-full bg-transparent text-sm sm:text-base text-ink placeholder:text-ink-soft/70 focus:outline-none"
+              className="w-full bg-transparent text-sm sm:text-base text-ink placeholder:text-slate-400 focus:outline-none font-medium"
             />
           </div>
 
           <button
             type="submit"
-            className="w-full sm:w-auto bg-teal hover:bg-teal-dark text-white font-semibold rounded-xl px-7 py-3 text-sm sm:text-base flex items-center justify-center gap-2 transition-colors duration-200 shrink-0"
+            className="w-full sm:w-auto bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-bold rounded-2xl px-8 py-3.5 text-sm sm:text-base flex items-center justify-center gap-2 shadow-glow-brand transition-all duration-200 active:scale-95 shrink-0"
           >
-            <span>🔍</span>
+            <Search className="w-4 h-4" />
             <span>{t.homePage.search}</span>
           </button>
         </form>
       </section>
 
       {/* INTERACTIVE MAP SECTION */}
-      <section className="max-w-[1140px] mx-auto px-4 sm:px-6 py-16 sm:py-20 w-full">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 w-full">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
           <div>
-            <div className="text-xs font-bold uppercase tracking-wider text-clay mb-1">
-              Explore around you
-            </div>
-            <h2 className="font-slab font-bold text-2xl sm:text-3xl text-ink">
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-brand-600 bg-brand-50 px-3 py-1 rounded-full border border-brand-200/60 mb-2">
+              <Compass className="w-3.5 h-3.5" />
+              Explore Storage Points
+            </span>
+            <h2 className="font-display font-extrabold text-2xl sm:text-4xl text-ink">
               {t.homePage.mapTitle}
             </h2>
             <p className="text-sm sm:text-base text-ink-soft mt-1.5 max-w-xl">
@@ -282,10 +380,10 @@ export default function HomePage() {
 
           <Link
             href="/locations"
-            className="inline-flex items-center gap-1.5 text-sm font-bold text-teal hover:text-teal-dark transition-colors self-start sm:self-auto"
+            className="inline-flex items-center gap-2 text-sm font-bold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100/70 border border-brand-200 px-4 py-2.5 rounded-2xl transition-all self-start sm:self-auto"
           >
-            <span>View list ({activeLocations.length})</span>
-            <span>→</span>
+            <span>View All ({activeLocations.length})</span>
+            <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
 
@@ -296,137 +394,41 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* HOW IT WORKS */}
+      {/* HOW IT WORKS SECTION */}
       <section
         id="how"
-        className="bg-sand/40 border-y border-line py-16 sm:py-20"
+        className="relative bg-sand/30 border-y border-line py-20 sm:py-28 overflow-hidden"
       >
-        <div className="max-w-[1140px] mx-auto px-4 sm:px-6">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <span className="text-xs font-bold uppercase tracking-wider text-clay block mb-1">
-              Easy & Convenient
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-brand-600 bg-white px-3 py-1 rounded-full border border-brand-200/60 shadow-2xs">
+              <Sparkles className="w-3.5 h-3.5" />
+              Simple 6-Step Flow
             </span>
-            <h2 className="font-slab font-bold text-2xl sm:text-4xl text-ink">
+            <h2 className="font-display font-extrabold text-3xl sm:text-5xl text-ink">
               {t.homePage.howItWorks}
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-            {[
-              t.homePage.step1,
-              t.homePage.step2,
-              t.homePage.step3,
-              t.homePage.step4,
-              t.homePage.step5,
-              t.homePage.step6,
-            ].map((text, i) => (
-              <div
-                key={i}
-                className="bg-white border border-line rounded-2xl p-5 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow"
-              >
-                <div>
-                  <div className="w-8 h-8 rounded-full bg-clay/10 text-clay font-slab font-bold text-sm flex items-center justify-center mb-3">
-                    {String(i + 1).padStart(2, "0")}
-                  </div>
-                  <p className="text-sm font-medium text-ink-soft leading-snug">
-                    {text}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* WHY BAGDROP - VALUE PROPOSITIONS */}
-      <section className="max-w-[1140px] mx-auto px-4 sm:px-6 py-16 sm:py-20 w-full">
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <span className="text-xs font-bold uppercase tracking-wider text-clay block mb-1">
-            Safety & Reliability
-          </span>
-          <h2 className="font-slab font-bold text-2xl sm:text-3xl text-ink">
-            {t.homePage.whyTitle}
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {[
-            {
-              icon: "🛡️",
-              title: t.homePage.verifiedPartners,
-              body: t.homePage.verifiedPartnersText,
-            },
-            {
-              icon: "📲",
-              title: t.homePage.qrCheckin,
-              body: t.homePage.qrCheckinText,
-            },
-            {
-              icon: "🏷️",
-              title: t.homePage.luggageTags,
-              body: t.homePage.luggageTagsText,
-            },
-            {
-              icon: "💳",
-              title: t.homePage.securePayment,
-              body: t.homePage.securePaymentText,
-            },
-          ].map((item) => (
-            <div
-              key={item.title}
-              className="bg-white border border-line rounded-2xl p-6 shadow-xs hover:border-clay/40 hover:shadow-lg transition-all duration-300"
-            >
-              <div className="w-12 h-12 rounded-xl bg-cream flex items-center justify-center text-2xl mb-4">
-                {item.icon}
-              </div>
-              <h3 className="font-slab font-bold text-lg text-ink mb-2">
-                {item.title}
-              </h3>
-              <p className="text-sm text-ink-soft leading-relaxed">
-                {item.body}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* FAQ SECTION */}
-      <section className="bg-sand/30 border-t border-line py-16 sm:py-20">
-        <div className="max-w-[800px] mx-auto px-4 sm:px-6">
-          <div className="text-center mb-10">
-            <h2 className="font-slab font-bold text-2xl sm:text-3xl text-ink">
-              {t.homePage.faqTitle}
-            </h2>
-          </div>
-
-          <div className="space-y-3">
-            {[
-              { q: t.homePage.faq1q, a: t.homePage.faq1a },
-              { q: t.homePage.faq2q, a: t.homePage.faq2a },
-              { q: t.homePage.faq3q, a: t.homePage.faq3a },
-              { q: t.homePage.faq4q, a: t.homePage.faq4a },
-            ].map((f, i) => {
-              const isOpen = openFaq === i;
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-5">
+            {steps.map((step, i) => {
+              const StepIcon = step.icon;
               return (
                 <div
-                  key={f.q}
-                  className="bg-white border border-line rounded-2xl overflow-hidden transition-all shadow-xs"
+                  key={i}
+                  className="group relative bg-white border border-line hover:border-brand-500/40 rounded-3xl p-6 shadow-card-modern hover:shadow-card-hover flex flex-col justify-between transition-all duration-300 hover:-translate-y-1.5"
                 >
-                  <button
-                    onClick={() => setOpenFaq(isOpen ? null : i)}
-                    className="w-full text-left px-5 py-4 flex justify-between items-center gap-4 font-semibold text-sm sm:text-base text-ink"
-                  >
-                    <span>{f.q}</span>
-                    <span className="w-6 h-6 rounded-full bg-cream flex items-center justify-center text-sm font-mono shrink-0">
-                      {isOpen ? "−" : "+"}
-                    </span>
-                  </button>
-
-                  {isOpen && (
-                    <div className="px-5 pb-5 pt-1 text-sm text-ink-soft border-t border-line/40 leading-relaxed">
-                      {f.a}
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-10 h-10 rounded-2xl bg-brand-500/10 text-brand-600 flex items-center justify-center font-display font-extrabold text-sm group-hover:bg-brand-500 group-hover:text-white transition-colors">
+                        0{i + 1}
+                      </div>
+                      <StepIcon className="w-5 h-5 text-slate-400 group-hover:text-brand-500 transition-colors" />
                     </div>
-                  )}
+                    <p className="text-sm font-semibold text-ink leading-relaxed">
+                      {step.title}
+                    </p>
+                  </div>
                 </div>
               );
             })}
@@ -434,27 +436,123 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* CITIES WE COVER */}
-      <section className="max-w-[1140px] mx-auto px-4 sm:px-6 py-16 sm:py-20 w-full">
-        <div className="text-center max-w-2xl mx-auto mb-10">
-          <h2 className="font-slab font-bold text-2xl sm:text-3xl text-ink">
-            {t.homePage.citiesTitle}
+      {/* BENTO GRID: WHY CHOOSE BAGDROP */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 w-full">
+        <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-teal-700 bg-teal-50 px-3 py-1 rounded-full border border-teal-200/60 shadow-2xs">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            Safety & Reliability
+          </span>
+          <h2 className="font-display font-extrabold text-3xl sm:text-4xl text-ink">
+            {t.homePage.whyTitle}
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {valueProps.map((item) => {
+            const Icon = item.icon;
+            return (
+              <div
+                key={item.title}
+                className="group relative bg-white border border-line hover:border-brand-500/40 rounded-3xl p-7 shadow-card-modern hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1.5"
+              >
+                <div
+                  className={`w-14 h-14 rounded-2xl bg-gradient-to-tr ${item.color} flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300`}
+                >
+                  <Icon className="w-7 h-7 stroke-[2.2]" />
+                </div>
+                <h3 className="font-display font-bold text-lg text-ink mb-2">
+                  {item.title}
+                </h3>
+                <p className="text-xs sm:text-sm text-ink-soft leading-relaxed font-normal">
+                  {item.body}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* FAQ SECTION WITH FRAMER MOTION ACCORDION */}
+      <section className="bg-sand/30 border-t border-line py-20 sm:py-28">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-12 space-y-3">
+            <span className="text-xs font-bold uppercase tracking-widest text-brand-600 bg-white px-3 py-1 rounded-full border border-brand-200/60 shadow-2xs">
+              Got Questions?
+            </span>
+            <h2 className="font-display font-extrabold text-3xl sm:text-4xl text-ink">
+              {t.homePage.faqTitle}
+            </h2>
+          </div>
+
+          <div className="space-y-4">
+            {faqs.map((f, i) => {
+              const isOpen = openFaq === i;
+              return (
+                <div
+                  key={f.q}
+                  className="bg-white border border-line rounded-3xl overflow-hidden shadow-card-modern transition-all duration-200"
+                >
+                  <button
+                    onClick={() => setOpenFaq(isOpen ? null : i)}
+                    className="w-full text-left px-6 py-5 flex justify-between items-center gap-4 font-display font-bold text-base text-ink hover:text-brand-600 transition-colors"
+                  >
+                    <span>{f.q}</span>
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-transform duration-300 shrink-0 ${
+                        isOpen ? "bg-brand-500 text-white rotate-180" : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      <ChevronDown className="w-4 h-4" />
+                    </div>
+                  </button>
+
+                  <AnimatePresence initial={false}>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.25, ease: "easeInOut" }}
+                      >
+                        <div className="px-6 pb-6 pt-1 text-sm text-ink-soft border-t border-slate-100 leading-relaxed font-normal">
+                          {f.a}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* CITIES COVERED SECTION */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 w-full">
+        <div className="text-center max-w-2xl mx-auto mb-14 space-y-3">
+          <h2 className="font-display font-extrabold text-3xl sm:text-4xl text-ink">
+            {t.homePage.citiesTitle}
+          </h2>
+          <p className="text-sm text-ink-soft">
+            Discover secure left-luggage network expanding across the Silk Road.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Active: Samarkand */}
           <Link
             href="/locations"
-            className="group bg-white border-2 border-clay/50 rounded-2xl p-5 hover:shadow-xl transition-all duration-300"
+            className="group relative bg-white border-2 border-brand-500 rounded-3xl p-6 shadow-card-modern hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1.5"
           >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-2xl">🏛️</span>
-              <span className="inline-flex items-center gap-1 text-[11px] bg-ok-bg text-ok font-bold px-2 py-0.5 rounded-full">
-                <span className="w-1.5 h-1.5 rounded-full bg-ok animate-pulse" />
-                Live
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-3xl">🏛️</span>
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 px-2.5 py-1 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Live Now
               </span>
             </div>
-            <h3 className="font-slab font-bold text-lg text-ink group-hover:text-clay transition-colors">
+            <h3 className="font-display font-extrabold text-xl text-ink group-hover:text-brand-600 transition-colors">
               {t.homePage.samarkand}
             </h3>
             <p className="text-xs text-ink-soft mt-1">
@@ -462,6 +560,7 @@ export default function HomePage() {
             </p>
           </Link>
 
+          {/* Coming Soon Cities */}
           {[
             { name: t.homePage.tashkent, icon: "🏙️" },
             { name: t.homePage.bukhara, icon: "🕌" },
@@ -469,15 +568,15 @@ export default function HomePage() {
           ].map((city) => (
             <div
               key={city.name}
-              className="bg-white/60 border border-line rounded-2xl p-5 opacity-75"
+              className="bg-white/60 border border-line rounded-3xl p-6 opacity-75 backdrop-blur-xs"
             >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-2xl">{city.icon}</span>
-                <span className="text-[11px] bg-line/20 text-ink-soft font-semibold px-2 py-0.5 rounded-full">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-3xl">{city.icon}</span>
+                <span className="text-[11px] font-bold uppercase bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full">
                   {t.homePage.comingSoon}
                 </span>
               </div>
-              <h3 className="font-slab font-bold text-lg text-ink/80">
+              <h3 className="font-display font-bold text-xl text-ink/80">
                 {city.name}
               </h3>
               <p className="text-xs text-ink-soft mt-1">Opening soon</p>

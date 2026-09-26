@@ -1,22 +1,26 @@
 "use client";
 
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { useLanguage } from "@/lib/i18n";
+import {
+  MessageCircle,
+  Mail,
+  Phone,
+  Send,
+  Store,
+  MapPin,
+  ArrowRight,
+  Headphones,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
 
-const CONTACT_EMAIL =
-  "bagdropuz@gmail.com";
-
-const CONTACT_PHONE =
-  "+998 94 267 12 31";
-
-const CONTACT_PHONE_LINK =
-  "+998942671231";
-
-const WHATSAPP_LINK =
-  "https://wa.me/998942671231";
-
-const TELEGRAM_LINK =
-  "https://t.me/+998942671231";
+const CONTACT_EMAIL = "bagdropuz@gmail.com";
+const CONTACT_PHONE = "+998 94 267 12 31";
+const CONTACT_PHONE_LINK = "+998942671231";
+const WHATSAPP_LINK = "https://wa.me/998942671231";
+const TELEGRAM_LINK = "https://t.me/bagdropuz";
 
 const CONTACT_TEXT = {
   uz: {
@@ -24,389 +28,256 @@ const CONTACT_TEXT = {
     title: "Biz bilan bog‘laning.",
     description:
       "BagDrop haqida savolingiz bormi, bron bo‘yicha yordam kerakmi yoki hamkor bo‘lishni xohlaysizmi? Bizga yozing.",
-
-    supportTitle: "Qo‘llab-quvvatlash",
+    supportTitle: "Tezkor Yordam (24/7)",
     supportText:
-      "Tezkor yordam kerakmi? WhatsApp yoki Telegram orqali biz bilan bog‘laning.",
-
-    whatsapp: "WhatsApp",
-    telegram: "Telegram",
-
-    email: "Email",
-    emailText:
-      "Savollaringizni email orqali yuboring.",
-
-    phone: "Telefon",
-    phoneText:
-      "Biz bilan telefon orqali bog‘laning.",
-
-    partnerTitle:
-      "BagDrop hamkori bo‘ling",
-
+      "Savollaringiz bormi? Telegram yoki WhatsApp orqali bir zumda javob oling.",
+    whatsapp: "WhatsApp Chat",
+    telegram: "Telegram 24/7",
+    email: "Email Murojaat",
+    emailText: "Rasmiy xatlar va takliflar uchun.",
+    phone: "Telefon Qo‘ng‘iroq",
+    phoneText: "Operator bilan to‘g‘ridan-to‘g‘ri gaplashing.",
+    partnerTitle: "BagDrop tarmog‘i hamkori bo‘ling",
     partnerText:
-      "Do‘kon, hostel, mehmonxona, kafe yoki boshqa biznesingiz bo‘lsa, yuk saqlash nuqtasi sifatida tarmoqqa qo‘shiling. Hamkorlik bo‘yicha bizga email yoki telefon orqali murojaat qiling.",
-
-    locationTitle:
-      "Bizning joylashuvimiz",
-
+      "Do‘kon, mehmonxona, hostel yoki kafeingiz bormi? Bo‘sh joyingizdan qo‘shimcha daromad oling va sayyohlarni jalb qiling.",
+    locationTitle: "Bizning Bosh Ofisimiz",
     locationText:
-      "BagDrop hozir Samarqandda ishlamoqda. Yangi shaharlar bosqichma-bosqich qo‘shiladi.",
-
-    locationsButton:
-      "Joylarni ko‘rish",
-
-    city:
-      "Samarqand, O‘zbekiston",
+      "BagDrop hozirda Samarqand bo‘ylab faol xizmat ko‘rsatmoqda. Toshkent va Buxoro tez orada ochiladi.",
+    locationsButton: "Joylarni ko‘rish",
+    city: "Samarqand, O‘zbekiston",
   },
-
   ru: {
     label: "Контакты",
     title: "Свяжитесь с нами.",
     description:
       "Есть вопрос о BagDrop, нужна помощь с бронированием или хотите стать партнёром? Напишите нам.",
-
-    supportTitle: "Поддержка",
+    supportTitle: "Поддержка (24/7)",
     supportText:
       "Нужна быстрая помощь? Свяжитесь с нами через WhatsApp или Telegram.",
-
-    whatsapp: "WhatsApp",
-    telegram: "Telegram",
-
-    email: "Email",
-    emailText:
-      "Отправьте нам свой вопрос по электронной почте.",
-
-    phone: "Телефон",
-    phoneText:
-      "Свяжитесь с нами по телефону.",
-
-    partnerTitle:
-      "Станьте партнёром BagDrop",
-
+    whatsapp: "WhatsApp Чат",
+    telegram: "Telegram 24/7",
+    email: "Email Поддержка",
+    emailText: "Для официальных запросов и предложений.",
+    phone: "Телефонная Связь",
+    phoneText: "Позвоните нам для оперативной помощи.",
+    partnerTitle: "Станьте партнёром BagDrop",
     partnerText:
-      "Если у вас магазин, хостел, отель, кафе или другой бизнес, присоединитесь к сети как пункт хранения багажа. По вопросам партнёрства свяжитесь с нами по email или телефону.",
-
-    locationTitle:
-      "Наше расположение",
-
+      "У вас отель, кафе, магазин или хостел? Монетизируйте свободное место и привлекайте больше туристов.",
+    locationTitle: "Локации сети",
     locationText:
-      "Сейчас BagDrop работает в Самарканде. Новые города будут добавляться постепенно.",
-
-    locationsButton:
-      "Посмотреть пункты",
-
-    city:
-      "Самарканд, Узбекистан",
+      "Сейчас BagDrop работает в Самарканде. Новые города (Ташкент, Бухара) открываются скоро.",
+    locationsButton: "Посмотреть пункты",
+    city: "Самарканд, Узбекистан",
   },
-
   en: {
-    label: "Contact",
-    title: "Get in touch.",
+    label: "Contact & Support",
+    title: "Get in touch with BagDrop.",
     description:
-      "Have a question about BagDrop, need help with a booking, or want to become a partner? Send us a message.",
-
-    supportTitle: "Support",
+      "Have a question, need assistance with your luggage booking, or want to become a storage partner? We are here 24/7.",
+    supportTitle: "Instant Support (24/7)",
     supportText:
-      "Need quick help? Contact us via WhatsApp or Telegram.",
-
-    whatsapp: "WhatsApp",
-    telegram: "Telegram",
-
-    email: "Email",
-    emailText:
-      "Send us your question by email.",
-
-    phone: "Phone",
-    phoneText:
-      "Call us if you need help.",
-
-    partnerTitle:
-      "Become a BagDrop partner",
-
+      "Need prompt help? Reach out directly via Telegram or WhatsApp messaging.",
+    whatsapp: "WhatsApp Chat",
+    telegram: "Telegram 24/7",
+    email: "Email Support",
+    emailText: "Send inquiries, feedback, or partnership requests.",
+    phone: "Direct Phone Call",
+    phoneText: "Speak with our support team directly.",
+    partnerTitle: "Become a BagDrop Luggage Partner",
     partnerText:
-      "Have a shop, hostel, hotel, café, or another local business? Join our network as a luggage storage location. Contact us by email or phone to discuss partnership.",
-
-    locationTitle:
-      "Where we operate",
-
+      "Own a cafe, shop, hotel, or hostel? Monetize your unused secure space and welcome international travelers.",
+    locationTitle: "Active Headquarters & Operations",
     locationText:
-      "BagDrop currently operates in Samarkand. More cities will be added gradually.",
-
-    locationsButton:
-      "View locations",
-
-    city:
-      "Samarkand, Uzbekistan",
+      "BagDrop currently operates in Samarkand. Tashkent, Bukhara, and Khiva expanding soon.",
+    locationsButton: "Explore Storage Points",
+    city: "Samarkand, Uzbekistan",
   },
 } as const;
 
 export default function ContactPage() {
   const { language } = useLanguage();
-
-  const text =
-    CONTACT_TEXT[language];
+  const text = CONTACT_TEXT[language] || CONTACT_TEXT.en;
 
   return (
     <main className="min-h-screen bg-cream">
+      
+      {/* HERO SECTION */}
+      <section className="relative bg-ink-deep text-white overflow-hidden py-16 sm:py-24">
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-brand-500/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-10 w-96 h-96 bg-teal-500/15 rounded-full blur-3xl pointer-events-none" />
 
-      {/* ============================================
-          HERO
-      ============================================ */}
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="max-w-2xl space-y-4"
+          >
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-brand-400 bg-brand-500/20 border border-brand-400/30 px-3.5 py-1 rounded-full">
+              <Headphones className="w-3.5 h-3.5" />
+              {text.label}
+            </span>
 
-      <section className="bg-ink text-white">
-        <div className="max-w-[1100px] mx-auto px-6 py-16 md:py-20">
+            <h1 className="font-display font-black text-4xl sm:text-6xl text-white tracking-tight">
+              {text.title}
+            </h1>
 
-          <p className="text-xs uppercase tracking-[0.18em] text-[#cfd9e0]">
-            {text.label}
-          </p>
-
-          <h1 className="font-slab font-bold text-4xl md:text-5xl mt-3 max-w-2xl">
-            {text.title}
-          </h1>
-
-          <p className="text-[#d7e0e5] mt-5 max-w-2xl leading-7">
-            {text.description}
-          </p>
-
+            <p className="text-base sm:text-lg text-slate-300 font-normal leading-relaxed">
+              {text.description}
+            </p>
+          </motion.div>
         </div>
       </section>
 
-      {/* ============================================
-          CONTACT CARDS
-      ============================================ */}
-
-      <section className="max-w-[1100px] mx-auto px-6 py-12 md:py-16">
-
-        <div className="grid md:grid-cols-3 gap-5">
-
-          {/* ========================================
-              SUPPORT
-          ======================================== */}
-
-          <div className="bg-white border border-line rounded-xl p-6">
-
-            <div className="w-10 h-10 rounded-lg bg-sand flex items-center justify-center text-xl">
-              💬
+      {/* CONTACT CARDS GRID */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          {/* Instant Messaging (Telegram / WhatsApp) */}
+          <div className="bg-white border border-line rounded-3xl p-7 shadow-card-modern hover:shadow-card-hover transition-all duration-300 flex flex-col justify-between">
+            <div>
+              <div className="w-12 h-12 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center mb-5">
+                <MessageCircle className="w-6 h-6 stroke-[2.2]" />
+              </div>
+              <h3 className="font-display font-bold text-xl text-ink">
+                {text.supportTitle}
+              </h3>
+              <p className="text-xs sm:text-sm text-ink-soft mt-2 leading-relaxed font-normal">
+                {text.supportText}
+              </p>
             </div>
 
-            <h2 className="font-slab font-bold text-xl mt-5">
-              {text.supportTitle}
-            </h2>
-
-            <p className="text-sm text-ink-soft leading-6 mt-3">
-              {text.supportText}
-            </p>
-
-            <div className="flex flex-wrap gap-2 mt-4">
-
-              {/* WHATSAPP */}
+            <div className="flex flex-wrap gap-2.5 mt-6">
+              <a
+                href={TELEGRAM_LINK}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-2xl bg-teal-600 hover:bg-teal-700 text-white px-4 py-2.5 text-xs font-bold shadow-sm transition-all"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>{text.telegram}</span>
+              </a>
 
               <a
                 href={WHATSAPP_LINK}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg bg-sand px-4 py-2.5 text-sm font-semibold text-ink hover:bg-line transition-colors"
+                className="inline-flex items-center gap-2 rounded-2xl bg-slate-100 hover:bg-slate-200 text-ink px-4 py-2.5 text-xs font-bold transition-all"
               >
-                <span>💬</span>
-
-                <span>
-                  {text.whatsapp}
-                </span>
+                <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                <span>{text.whatsapp}</span>
               </a>
-
-              {/* TELEGRAM */}
-
-              <a
-                href={TELEGRAM_LINK}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg bg-sand px-4 py-2.5 text-sm font-semibold text-ink hover:bg-line transition-colors"
-              >
-                <span>✈️</span>
-
-                <span>
-                  {text.telegram}
-                </span>
-              </a>
-
             </div>
-
           </div>
 
-          {/* ========================================
-              EMAIL
-          ======================================== */}
-
-          <div className="bg-white border border-line rounded-xl p-6">
-
-            <div className="w-10 h-10 rounded-lg bg-sand flex items-center justify-center text-xl">
-              ✉️
-            </div>
-
-            <h2 className="font-slab font-bold text-xl mt-5">
-              {text.email}
-            </h2>
-
-            <p className="text-sm text-ink-soft leading-6 mt-3">
-              {text.emailText}
-            </p>
-
-            <a
-              href={`mailto:${CONTACT_EMAIL}`}
-              className="inline-block mt-4 text-sm font-semibold text-clay hover:text-clay-dark break-all"
-            >
-              {CONTACT_EMAIL}
-            </a>
-
-          </div>
-
-          {/* ========================================
-              PHONE
-          ======================================== */}
-
-          <div className="bg-white border border-line rounded-xl p-6">
-
-            <div className="w-10 h-10 rounded-lg bg-sand flex items-center justify-center text-xl">
-              📞
-            </div>
-
-            <h2 className="font-slab font-bold text-xl mt-5">
-              {text.phone}
-            </h2>
-
-            <p className="text-sm text-ink-soft leading-6 mt-3">
-              {text.phoneText}
-            </p>
-
-            <a
-              href={`tel:${CONTACT_PHONE_LINK}`}
-              className="inline-block mt-4 text-sm font-semibold text-clay hover:text-clay-dark"
-            >
-              {CONTACT_PHONE}
-            </a>
-
-          </div>
-
-        </div>
-
-        {/* ============================================
-            PARTNER
-        ============================================ */}
-
-        <div className="mt-8 bg-white border border-line rounded-xl p-7 md:p-9">
-
-          <div className="max-w-3xl">
-
-            <div className="flex items-center gap-3">
-
-              <div className="w-10 h-10 rounded-lg bg-sand flex items-center justify-center text-xl">
-                🤝
+          {/* Email Support */}
+          <div className="bg-white border border-line rounded-3xl p-7 shadow-card-modern hover:shadow-card-hover transition-all duration-300 flex flex-col justify-between">
+            <div>
+              <div className="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center mb-5">
+                <Mail className="w-6 h-6 stroke-[2.2]" />
               </div>
-
-              <h2 className="font-slab font-bold text-2xl">
-                {text.partnerTitle}
-              </h2>
-
+              <h3 className="font-display font-bold text-xl text-ink">
+                {text.email}
+              </h3>
+              <p className="text-xs sm:text-sm text-ink-soft mt-2 leading-relaxed font-normal">
+                {text.emailText}
+              </p>
             </div>
 
-            <p className="text-sm text-ink-soft leading-6 mt-4">
-              {text.partnerText}
-            </p>
-
-            {/* CONTACT DETAILS */}
-
-            <div className="flex flex-col sm:flex-row gap-3 mt-6">
-
-              {/* EMAIL */}
-
+            <div className="mt-6">
               <a
                 href={`mailto:${CONTACT_EMAIL}`}
-                className="inline-flex items-center gap-2 rounded-lg bg-sand px-4 py-3 text-sm font-semibold text-ink hover:bg-line transition-colors"
+                className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-brand-600 hover:text-brand-700 bg-brand-50 border border-brand-200/60 px-4 py-3 rounded-2xl transition-all"
               >
-                <span>✉️</span>
-
-                <span>
-                  {CONTACT_EMAIL}
-                </span>
+                <Mail className="w-4 h-4 shrink-0" />
+                <span>{CONTACT_EMAIL}</span>
               </a>
+            </div>
+          </div>
 
-              {/* PHONE */}
-
-              <a
-                href={`tel:${CONTACT_PHONE_LINK}`}
-                className="inline-flex items-center gap-2 rounded-lg bg-sand px-4 py-3 text-sm font-semibold text-ink hover:bg-line transition-colors"
-              >
-                <span>📞</span>
-
-                <span>
-                  {CONTACT_PHONE}
-                </span>
-              </a>
-
-              {/* TELEGRAM */}
-
-              <a
-                href={TELEGRAM_LINK}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg bg-sand px-4 py-3 text-sm font-semibold text-ink hover:bg-line transition-colors"
-              >
-                <span>✈️</span>
-
-                <span>
-                  {text.telegram}
-                </span>
-              </a>
-
+          {/* Phone Hotline */}
+          <div className="bg-white border border-line rounded-3xl p-7 shadow-card-modern hover:shadow-card-hover transition-all duration-300 flex flex-col justify-between">
+            <div>
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-5">
+                <Phone className="w-6 h-6 stroke-[2.2]" />
+              </div>
+              <h3 className="font-display font-bold text-xl text-ink">
+                {text.phone}
+              </h3>
+              <p className="text-xs sm:text-sm text-ink-soft mt-2 leading-relaxed font-normal">
+                {text.phoneText}
+              </p>
             </div>
 
+            <div className="mt-6">
+              <a
+                href={`tel:${CONTACT_PHONE_LINK}`}
+                className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-ink bg-slate-100 hover:bg-slate-200 border border-slate-200 px-4 py-3 rounded-2xl transition-all"
+              >
+                <Phone className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{CONTACT_PHONE}</span>
+              </a>
+            </div>
           </div>
 
         </div>
 
-        {/* ============================================
-            LOCATIONS
-        ============================================ */}
-
-        <div className="mt-8 bg-white border border-line rounded-xl p-7 md:p-9">
-
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
-
-            <div>
-
-              <div className="flex items-center gap-3">
-
-                <div className="w-10 h-10 rounded-lg bg-sand flex items-center justify-center text-xl">
-                  📍
-                </div>
-
-                <h2 className="font-slab font-bold text-2xl">
-                  {text.locationTitle}
-                </h2>
-
+        {/* PARTNER BANNER */}
+        <div className="mt-10 bg-white border border-line rounded-4xl p-8 sm:p-10 shadow-card-modern">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
+            <div className="max-w-2xl space-y-3">
+              <div className="inline-flex items-center gap-2 text-xs font-bold text-teal-700 bg-teal-50 px-3 py-1 rounded-full border border-teal-200">
+                <Store className="w-3.5 h-3.5" />
+                <span>Partnership Opportunity</span>
               </div>
+              <h2 className="font-display font-extrabold text-2xl sm:text-3xl text-ink">
+                {text.partnerTitle}
+              </h2>
+              <p className="text-sm text-ink-soft leading-relaxed font-normal">
+                {text.partnerText}
+              </p>
+            </div>
 
-              <p className="text-sm text-ink-soft leading-6 mt-4 max-w-2xl">
+            <div className="flex flex-wrap gap-3 shrink-0">
+              <Link
+                href="/partner/login"
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-bold text-xs sm:text-sm rounded-2xl px-6 py-3.5 shadow-glow-brand transition-all"
+              >
+                <Store className="w-4 h-4" />
+                <span>Partner Portal</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* LOCATION HUB BANNER */}
+        <div className="mt-8 bg-white border border-line rounded-4xl p-8 sm:p-10 shadow-card-modern">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-brand-500" />
+                <h3 className="font-display font-bold text-xl text-ink">
+                  {text.locationTitle}
+                </h3>
+              </div>
+              <p className="text-xs sm:text-sm text-ink-soft font-normal">
                 {text.locationText}
               </p>
-
-              <p className="text-sm font-semibold mt-3">
-                {text.city}
+              <p className="font-display font-bold text-sm text-ink pt-1">
+                📍 {text.city}
               </p>
-
             </div>
 
             <Link
               href="/locations"
-              className="btn-ghost shrink-0 text-center"
+              className="inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-ink font-bold text-xs sm:text-sm rounded-2xl px-5 py-3 transition-colors shrink-0"
             >
-              {text.locationsButton}
+              <span>{text.locationsButton}</span>
+              <ArrowRight className="w-4 h-4" />
             </Link>
-
           </div>
-
         </div>
-
       </section>
 
     </main>

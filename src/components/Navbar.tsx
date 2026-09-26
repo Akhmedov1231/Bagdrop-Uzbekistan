@@ -3,23 +3,35 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { BRAND } from "@/lib/config";
 import { useLanguage, type Language } from "@/lib/i18n";
+import {
+  Luggage,
+  Compass,
+  MapPin,
+  Headphones,
+  Store,
+  Globe,
+  Menu,
+  X,
+  Sparkles,
+  ArrowRight,
+} from "lucide-react";
 
 const LINKS = [
-  { href: "/", label: "home" },
-  { href: "/locations", label: "locations" },
-  { href: "/contact", label: "contact" },
-  { href: "/partner/login", label: "partnerLogin" },
+  { href: "/", labelKey: "home", icon: Compass },
+  { href: "/locations", labelKey: "locations", icon: MapPin },
+  { href: "/contact", labelKey: "contact", icon: Headphones },
+  { href: "/partner/login", labelKey: "partnerLogin", icon: Store },
 ] as const;
 
 export default function Navbar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
   const { language, setLanguage, t } = useLanguage();
 
-  const navLabels = {
+  const navLabels: Record<string, string> = {
     home: t.home,
     locations: t.locations,
     contact: t.contact,
@@ -33,140 +45,150 @@ export default function Navbar() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 bg-cream/90 backdrop-blur-md border-b border-line transition-all">
-      <div className="max-w-[1140px] mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
+    <header className="sticky top-0 z-50 w-full backdrop-blur-xl bg-cream/80 border-b border-line transition-all duration-300">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between gap-4 py-3.5">
         {/* LOGO */}
         <Link
           href="/"
-          className="flex items-center gap-2.5 font-slab font-bold text-xl tracking-tight text-ink hover:opacity-90 transition-opacity shrink-0"
+          className="group flex items-center gap-3 font-display font-bold text-xl tracking-tight text-ink hover:opacity-95 transition-transform duration-200 active:scale-95 shrink-0"
         >
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-clay-dark via-clay to-[#f3a45c] flex items-center justify-center shadow-sm">
-            <svg
-              viewBox="0 0 24 24"
-              className="w-5 h-5 text-white"
-              fill="currentColor"
-            >
-              <path d="M19 7h-3V6a4 4 0 0 0-8 0v1H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zm-9-1a2 2 0 0 1 4 0v1h-4V6zm9 13H5V9h14v10z" />
-            </svg>
+          <div className="relative w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 via-brand-500 to-amber-400 flex items-center justify-center shadow-glow-brand group-hover:shadow-lg transition-all duration-300">
+            <Luggage className="w-5 h-5 text-white stroke-[2.2] group-hover:rotate-6 transition-transform duration-300" />
+            <span className="absolute -top-1 -right-1 w-3 h-3 bg-teal-400 rounded-full border-2 border-white animate-pulse" />
           </div>
-          <span>
-            {BRAND.name}
-            <span className="text-clay text-xs ml-1 font-sans font-semibold tracking-normal uppercase bg-clay/10 px-1.5 py-0.5 rounded">
+          <div className="flex items-center gap-1.5">
+            <span className="text-xl font-extrabold bg-gradient-to-r from-ink via-ink-deep to-ink-soft bg-clip-text text-transparent">
+              {BRAND.name}
+            </span>
+            <span className="text-[10px] font-sans font-bold uppercase tracking-wider bg-brand-500/10 text-brand-600 border border-brand-500/20 px-2 py-0.5 rounded-full">
               UZ
             </span>
-          </span>
+          </div>
         </Link>
 
         {/* DESKTOP NAVIGATION */}
-        <nav className="hidden md:flex items-center gap-7 text-sm font-medium">
+        <nav className="hidden md:flex items-center gap-1 bg-white/70 p-1.5 rounded-full border border-line shadow-xs">
           {LINKS.map((link) => {
             const active =
               link.href === "/"
                 ? pathname === "/"
                 : pathname?.startsWith(link.href);
+            const Icon = link.icon;
 
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`py-1 relative font-medium transition-colors ${
+                className={`relative px-4 py-2 rounded-full text-xs font-semibold flex items-center gap-2 transition-all duration-200 ${
                   active
-                    ? "text-clay font-semibold"
-                    : "text-ink/80 hover:text-ink"
+                    ? "text-brand-600 font-bold"
+                    : "text-ink-soft hover:text-ink hover:bg-black/5"
                 }`}
               >
-                {navLabels[link.label]}
                 {active && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-clay rounded-full" />
+                  <motion.div
+                    layoutId="navbar-active-pill"
+                    className="absolute inset-0 bg-brand-500/10 border border-brand-500/20 rounded-full -z-10"
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  />
                 )}
+                <Icon className={`w-3.5 h-3.5 ${active ? "text-brand-600" : "text-ink-muted"}`} />
+                <span>{navLabels[link.labelKey]}</span>
               </Link>
             );
           })}
         </nav>
 
-        {/* RIGHT SIDE ACTIONS */}
-        <div className="flex items-center gap-2.5">
+        {/* RIGHT ACTIONS */}
+        <div className="flex items-center gap-3">
           {/* LANGUAGE SELECTOR */}
-          <div className="relative flex items-center bg-white/80 border border-line rounded-xl px-2 py-1 shadow-xs hover:border-line/80 transition-colors">
-            <span className="text-xs mr-1.5">
-              {languages.find((l) => l.code === language)?.flag || "🌐"}
-            </span>
+          <div className="relative flex items-center bg-white/80 border border-line rounded-full px-3 py-1.5 shadow-xs hover:border-brand-500/30 transition-colors">
+            <Globe className="w-3.5 h-3.5 text-ink-muted mr-1.5" />
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value as Language)}
               aria-label={t.language}
-              className="bg-transparent border-none text-xs font-semibold text-ink cursor-pointer focus:outline-none uppercase pr-1"
+              className="bg-transparent border-none text-xs font-bold text-ink cursor-pointer focus:outline-none uppercase pr-1 tracking-wider"
             >
-              <option value="uz">UZ</option>
-              <option value="ru">RU</option>
-              <option value="en">EN</option>
+              <option value="uz">🇺🇿 UZ</option>
+              <option value="ru">🇷🇺 RU</option>
+              <option value="en">🇬🇧 EN</option>
             </select>
           </div>
 
-          {/* FIND STORAGE CTA */}
+          {/* FIND STORAGE BUTTON */}
           <Link
             href="/locations"
-            className="hidden sm:inline-flex items-center gap-1.5 bg-clay hover:bg-clay-dark text-white text-xs sm:text-sm font-semibold rounded-xl px-4 py-2.5 shadow-sm hover:shadow transition-all duration-200 active:scale-95"
+            className="hidden sm:inline-flex items-center gap-2 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-glow-brand hover:shadow-lg transition-all duration-200 active:scale-95"
           >
-            <span>🔍</span>
-            {t.findStorage}
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>{t.findStorage}</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </Link>
 
-          {/* MOBILE MENU TOGGLE BUTTON */}
+          {/* MOBILE TOGGLE */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-xl border border-line text-ink hover:bg-white/80 transition-colors"
+            className="md:hidden p-2 rounded-2xl border border-line text-ink hover:bg-white/80 transition-colors active:scale-90"
             aria-label="Toggle navigation menu"
           >
             {mobileMenuOpen ? (
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <X className="w-5 h-5 text-ink" />
             ) : (
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
+              <Menu className="w-5 h-5 text-ink" />
             )}
           </button>
         </div>
       </div>
 
-      {/* MOBILE DROPDOWN DRAWER */}
-      {mobileMenuOpen && (
-        <div className="md:hidden border-t border-line bg-cream/98 px-6 py-4 animate-in slide-in-from-top-2 duration-200">
-          <nav className="flex flex-col gap-3">
-            {LINKS.map((link) => {
-              const active =
-                link.href === "/"
-                  ? pathname === "/"
-                  : pathname?.startsWith(link.href);
+      {/* MOBILE DRAWER */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+            className="md:hidden overflow-hidden border-t border-line bg-cream/95 backdrop-blur-xl px-5 py-4"
+          >
+            <div className="flex flex-col gap-2">
+              {LINKS.map((link) => {
+                const active =
+                  link.href === "/"
+                    ? pathname === "/"
+                    : pathname?.startsWith(link.href);
+                const Icon = link.icon;
 
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`text-sm py-2 px-3 rounded-lg font-medium transition-colors ${
-                    active
-                      ? "bg-clay/10 text-clay font-bold"
-                      : "text-ink/80 hover:bg-black/5"
-                  }`}
-                >
-                  {navLabels[link.label]}
-                </Link>
-              );
-            })}
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+                      active
+                        ? "bg-brand-500/10 text-brand-600 font-bold border border-brand-500/20"
+                        : "text-ink hover:bg-white/70"
+                    }`}
+                  >
+                    <Icon className={`w-4 h-4 ${active ? "text-brand-600" : "text-ink-muted"}`} />
+                    <span>{navLabels[link.labelKey]}</span>
+                  </Link>
+                );
+              })}
 
-            <Link
-              href="/locations"
-              onClick={() => setMobileMenuOpen(false)}
-              className="mt-2 text-center bg-clay text-white text-sm font-semibold rounded-xl py-3 shadow-sm"
-            >
-              {t.findStorage}
-            </Link>
-          </nav>
-        </div>
-      )}
+              <Link
+                href="/locations"
+                onClick={() => setMobileMenuOpen(false)}
+                className="mt-2 flex items-center justify-center gap-2 bg-gradient-to-r from-brand-500 to-brand-600 text-white font-bold text-sm py-3.5 rounded-2xl shadow-glow-brand active:scale-95 transition-all"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>{t.findStorage}</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

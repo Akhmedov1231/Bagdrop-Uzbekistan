@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
   MapContainer,
@@ -45,7 +44,7 @@ function FitMapToLocations({
     );
 
     map.fitBounds(bounds, {
-      padding: [50, 50],
+      padding: [60, 60],
       maxZoom: 14,
     });
   }, [map, locations]);
@@ -53,34 +52,47 @@ function FitMapToLocations({
   return null;
 }
 
-const markerIcon = L.divIcon({
-  className: "",
-  html: `
-    <div style="
-      width: 34px;
-      height: 34px;
-      background: #e0883c;
-      border: 3px solid white;
-      border-radius: 50% 50% 50% 0;
-      transform: rotate(-45deg);
-      box-shadow: 0 2px 8px rgba(0,0,0,.3);
-      position: relative;
-    ">
+function createCustomPin(price: number | string) {
+  const formattedPrice = Number(price) >= 1000 ? `${Math.round(Number(price) / 1000)}k` : `${price}`;
+  return L.divIcon({
+    className: "custom-map-pin",
+    html: `
       <div style="
-        width: 10px;
-        height: 10px;
-        background: white;
-        border-radius: 50%;
-        position: absolute;
-        left: 9px;
-        top: 9px;
-      "></div>
-    </div>
-  `,
-  iconSize: [34, 34],
-  iconAnchor: [17, 34],
-  popupAnchor: [0, -34],
-});
+        display: flex;
+        align-items: center;
+        background: #0f172a;
+        color: #ffffff;
+        padding: 5px 10px;
+        border-radius: 9999px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.3), 0 0 0 2px #ea580c;
+        font-family: system-ui, sans-serif;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        white-space: nowrap;
+        cursor: pointer;
+        position: relative;
+      ">
+        <span style="display:inline-block; width:6px; height:6px; background:#10b981; border-radius:50%; margin-right:5px;"></span>
+        ${formattedPrice} UZS
+        <div style="
+          position: absolute;
+          bottom: -5px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 0;
+          height: 0;
+          border-left: 5px solid transparent;
+          border-right: 5px solid transparent;
+          border-top: 5px solid #ea580c;
+        "></div>
+      </div>
+    `,
+    iconSize: [80, 32],
+    iconAnchor: [40, 32],
+    popupAnchor: [0, -32],
+  });
+}
 
 function formatMoney(value: number | string) {
   return `${Number(value).toLocaleString("en-US")} UZS`;
@@ -101,13 +113,11 @@ export default function RealMap({
     );
   });
 
-  console.log("MAP LOCATIONS:", locations);
-  console.log("VALID MAP LOCATIONS:", validLocations);
-
   if (validLocations.length === 0) {
     return (
-      <div className="h-[430px] bg-sand flex items-center justify-center text-sm text-ink-soft">
-        No locations available.
+      <div className="h-[460px] bg-sand/40 rounded-3xl border border-line flex flex-col items-center justify-center p-6 text-center text-sm text-slate-500">
+        <span className="text-3xl mb-2">🗺️</span>
+        <p className="font-semibold">No storage locations available on map.</p>
       </div>
     );
   }
@@ -115,7 +125,7 @@ export default function RealMap({
   const first = validLocations[0];
 
   return (
-    <div className="h-[430px] w-full">
+    <div className="h-[460px] w-full rounded-3xl overflow-hidden border border-line shadow-card-modern relative z-0">
       <MapContainer
         center={[
           Number(first.latitude),
@@ -141,38 +151,42 @@ export default function RealMap({
               Number(location.latitude),
               Number(location.longitude),
             ]}
-            icon={markerIcon}
+            icon={createCustomPin(location.price_per_bag)}
           >
-            <Popup>
-              <div className="min-w-[210px]">
-                <div className="font-semibold text-[15px]">
+            <Popup className="custom-popup">
+              <div className="p-1 min-w-[220px]">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md w-fit mb-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  Verified Storage
+                </div>
+
+                <div className="font-bold text-[15px] text-slate-900 leading-snug">
                   {location.name}
                 </div>
 
-                <div className="text-xs text-gray-500 mt-1">
-                  {location.address}
+                <div className="text-xs text-slate-500 mt-1 line-clamp-2">
+                  📍 {location.address}
                 </div>
 
-                <div className="font-semibold text-sm mt-3">
-                  {formatMoney(
-                    location.price_per_bag
-                  )}
+                <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block uppercase font-bold">Price</span>
+                    <span className="font-bold text-sm text-slate-900">
+                      {formatMoney(location.price_per_bag)}
+                    </span>
+                  </div>
 
-                  <span className="font-normal text-gray-500">
-                    {" "}
-                    / bag / day
-                  </span>
-                </div>
-
-                <div className="text-xs text-gray-500 mt-1">
-                  Capacity: {location.capacity} bags
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-400 block uppercase font-bold">Capacity</span>
+                    <span className="text-xs font-semibold text-slate-700">{location.capacity} bags</span>
+                  </div>
                 </div>
 
                 <Link
                   href={`/locations/${location.slug}`}
-                  className="inline-block mt-3 bg-[#e0883c] text-white rounded px-3 py-2 text-xs font-semibold"
+                  className="mt-3 flex items-center justify-center w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white rounded-xl py-2 px-3 text-xs font-bold shadow-sm transition-all"
                 >
-                  View location
+                  Book Storage Now →
                 </Link>
               </div>
             </Popup>
