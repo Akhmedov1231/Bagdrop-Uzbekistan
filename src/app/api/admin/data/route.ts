@@ -1,3 +1,4 @@
+
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -183,6 +184,40 @@ export async function GET() {
       );
 
     // -----------------------------
+    // NOTIFICATIONS
+    // -----------------------------
+
+    const {
+      data: notifications,
+      error: notificationsError,
+    } = await supabase
+      .from("notifications")
+      .select(`
+        id,
+        recipient_type,
+        recipient_id,
+        location_id,
+        booking_id,
+        type,
+        title,
+        message,
+        is_read,
+        created_at
+      `)
+      .eq("recipient_type", "ADMIN")
+      .order("created_at", {
+        ascending: false,
+      })
+      .limit(30);
+
+    if (notificationsError) {
+      console.error(
+        "Admin notifications error:",
+        notificationsError
+      );
+    }
+
+    // -----------------------------
     // FORMAT BOOKINGS
     // -----------------------------
 
@@ -356,10 +391,15 @@ export async function GET() {
 
     return NextResponse.json({
       ok: true,
+
       bookings:
         formattedBookings,
+
       locations:
         formattedLocations,
+
+      notifications:
+        notifications ?? [],
     });
   } catch (error) {
     console.error(

@@ -101,6 +101,19 @@ type LocationForm = {
   yandexMapsUrl: string;
 };
 
+type Notification = {
+  id: string;
+  recipient_type: string;
+  recipient_id: string | null;
+  location_id: string | null;
+  booking_id: string | null;
+  type: string;
+  title: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+};
+
 export default function AdminDashboardPage() {
   const supabase = createClient();
   const [tab, setTab] =
@@ -119,6 +132,12 @@ export default function AdminDashboardPage() {
 
   const [locations, setLocations] =
     useState<Location[]>([]);
+
+  const [notifications, setNotifications] =
+    useState<Notification[]>([]);
+
+  const [notificationsOpen, setNotificationsOpen] =
+    useState(false);
 
   const [loading, setLoading] =
     useState(true);
@@ -187,6 +206,10 @@ export default function AdminDashboardPage() {
       setLocations(
         result.locations ?? []
       );
+
+      setNotifications(
+        result.notifications ?? []
+      );
     } catch (error) {
       console.error(
         "Admin data loading error:",
@@ -206,6 +229,12 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     loadAdminData();
   }, []);
+
+  const unreadNotifications =
+    notifications.filter(
+      (notification) =>
+        !notification.is_read
+    ).length;
 
   // ==========================================
   // TODAY
@@ -478,6 +507,78 @@ export default function AdminDashboardPage() {
     }
   }
 
+  async function markNotificationRead(
+    notificationId: string
+  ) {
+    const target =
+      notifications.find(
+        (notification) =>
+          notification.id === notificationId
+      );
+
+    if (!target || target.is_read) {
+      return;
+    }
+
+    // Update the UI immediately.
+    setNotifications((current) =>
+      current.map((notification) =>
+        notification.id === notificationId
+          ? {
+              ...notification,
+              is_read: true,
+            }
+          : notification
+      )
+    );
+
+    try {
+      const response = await fetch(
+        "/api/admin/notifications",
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            id: notificationId,
+          }),
+        }
+      );
+
+      const result =
+        await response.json();
+
+      if (
+        !response.ok ||
+        !result.ok
+      ) {
+        throw new Error(
+          result.error ||
+            "Could not mark notification as read."
+        );
+      }
+    } catch (error) {
+      console.error(
+        "Notification read error:",
+        error
+      );
+
+      // Restore the previous state if the server update failed.
+      setNotifications((current) =>
+        current.map((notification) =>
+          notification.id === notificationId
+            ? {
+                ...notification,
+                is_read: false,
+              }
+            : notification
+        )
+      );
+    }
+  }
+
   // ==========================================
   // LOADING
   // ==========================================
@@ -547,7 +648,117 @@ export default function AdminDashboardPage() {
             Live Supabase data
           </span>
 
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-2 relative">
+            <button
+              type="button"
+              onClick={() =>
+                setNotificationsOpen(
+                  (current) => !current
+                )
+              }
+              className="relative border border-line rounded px-3 py-1.5 text-sm hover:bg-sand transition-colors"
+              aria-label="Notifications"
+            >
+              🔔
+
+              {unreadNotifications > 0 && (
+                <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-clay text-white text-[10px] font-bold flex items-center justify-center">
+                  {unreadNotifications > 99
+                    ? "99+"
+                    : unreadNotifications}
+                </span>
+              )}
+            </button>
+
+            {notificationsOpen && (
+              <div className="absolute right-0 top-11 z-40 w-[340px] max-w-[calc(100vw-2rem)] bg-white border border-line rounded-lg shadow-xl overflow-hidden">
+                <div className="px-4 py-3 border-b border-line flex items-center justify-between">
+                  <div>
+                    <div className="font-semibold text-sm">
+                      Notifications
+                    </div>
+                    <div className="text-[11px] text-ink-soft mt-0.5">
+                      {unreadNotifications} unread
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setNotificationsOpen(false)
+                    }
+                    className="text-ink-soft hover:text-ink text-lg"
+                    aria-label="Close notifications"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="max-h-[360px] overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <div className="px-4 py-8 text-center text-sm text-ink-soft">
+                      No notifications.
+                    </div>
+                  ) : (
+                    notifications.map(
+                      (notification) => (
+                        <button
+                          type="button"
+                          key={notification.id}
+                          onClick={() =>
+                            markNotificationRead(
+                              notification.id
+                            )
+                          }
+                          className={`w-full text-left px-4 py-3 border-b border-line last:border-b-0 hover:bg-sand/40 transition-colors ${
+                            notification.is_read
+                              ? "bg-white"
+                              : "bg-sand/60"
+                          }`}
+                        >
+                          <div className="flex items-start gap-2">
+                            <span className="text-base">
+                              🔔
+                            </span>
+
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm font-semibold">
+                                {notification.title}
+                              </div>
+
+                              <div className="text-xs text-ink-soft mt-1">
+                                {notification.message}
+                              </div>
+
+                              <div className="text-[10px] text-ink-soft mt-1.5">
+                                {formatDateTime(
+                                  notification.created_at
+                                )}
+                              </div>
+                            </div>
+
+                            {!notification.is_read && (
+                              <span className="w-2 h-2 rounded-full bg-clay mt-1.5 shrink-0" />
+                            )}
+                          </div>
+                        </button>
+                      )
+                    )
+                  )}
+                </div>
+
+                <div className="px-4 py-2.5 border-t border-line bg-sand/40">
+                  <button
+                    type="button"
+                    onClick={loadAdminData}
+                    className="text-xs font-semibold text-ink hover:underline"
+                  >
+                    Refresh notifications
+                  </button>
+                </div>
+              </div>
+            )}
+
             <button
               onClick={
                 loadAdminData

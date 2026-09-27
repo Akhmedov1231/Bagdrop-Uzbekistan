@@ -295,6 +295,113 @@ export async function POST(request: Request) {
     }
 
     // ==================================================
+    // BAG PHOTOS CHECK
+    // CHECK-IN faqat FRONT + BACK rasmlar bo'lsa mumkin
+    // ==================================================
+
+    if (nextStatus === "CHECKED_IN") {
+      const { data: bagsForPhotoCheck, error: bagsPhotoError } =
+        await supabase
+          .from("bags")
+          .select("id")
+          .eq("booking_id", booking.id);
+
+      if (bagsPhotoError) {
+        console.error(
+          "Could not load bags for photo check:",
+          bagsPhotoError
+        );
+
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "Could not verify bag photos.",
+          },
+          {
+            status: 500,
+          }
+        );
+      }
+
+      if (!bagsForPhotoCheck || bagsForPhotoCheck.length === 0) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "No bags found for this booking.",
+          },
+          {
+            status: 400,
+          }
+        );
+      }
+
+      const bagIds = bagsForPhotoCheck.map(
+        (bag: { id: string }) => bag.id
+      );
+
+      const { data: bagPhotos, error: bagPhotosError } =
+        await supabase
+          .from("bag_photos")
+          .select("bag_id, photo_type")
+          .in("bag_id", bagIds);
+
+      if (bagPhotosError) {
+        console.error(
+          "Could not load bag photos:",
+          bagPhotosError
+        );
+
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "Could not verify bag photos.",
+          },
+          {
+            status: 500,
+          }
+        );
+      }
+
+      const missingPhotos: string[] = [];
+
+      for (const bag of bagsForPhotoCheck) {
+        const hasFront = (bagPhotos ?? []).some(
+          (photo: { bag_id: string; photo_type: string }) =>
+            photo.bag_id === bag.id &&
+            photo.photo_type === "FRONT"
+        );
+
+        const hasBack = (bagPhotos ?? []).some(
+          (photo: { bag_id: string; photo_type: string }) =>
+            photo.bag_id === bag.id &&
+            photo.photo_type === "BACK"
+        );
+
+        if (!hasFront) {
+          missingPhotos.push(`${bag.id}: FRONT`);
+        }
+
+        if (!hasBack) {
+          missingPhotos.push(`${bag.id}: BACK`);
+        }
+      }
+
+      if (missingPhotos.length > 0) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error:
+              "Take FRONT and BACK photos for every bag before check-in.",
+            missingPhotos,
+          },
+          {
+            status: 400,
+          }
+        );
+      }
+    }
+
+    // ==================================================
     // 11. BOOKING STATUSINI UPDATE QILISH
     //
     // WHERE status = current status

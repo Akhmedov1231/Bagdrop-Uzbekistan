@@ -960,14 +960,213 @@ function BookingWizardInner() {
               <CheckCircle2 className="w-8 h-8 stroke-[2.5]" />
             </div>
 
-            <div>
-              <h2 className="font-display font-extrabold text-2xl sm:text-3xl text-ink">
-                {t.booking.bookingConfirmed}
-              </h2>
-              <p className="text-xs sm:text-sm text-ink-soft mt-1">
-                {t.booking.bookingSaved}
-              </p>
-            </div>
+            <h2 className="font-slab font-bold text-xl">
+              {t.booking.bookingConfirmed}
+            </h2>
+
+            <p className="text-sm text-ink-soft mt-1">
+              {t.booking.bookingSaved}
+            </p>
+
+          </div>
+
+          {createdBooking && (
+            <>
+
+              <div className="bg-sand rounded p-4 mt-5 text-sm">
+
+                <h3 className="font-semibold mb-3">
+                  {t.booking.bookingInformation}
+                </h3>
+
+                <Row
+                  label={t.booking.bookingNumber}
+                  value={
+                    createdBooking.bookingNumber
+                  }
+                />
+
+                <Row
+                  label={t.booking.location}
+                  value={
+                    location.name
+                  }
+                />
+
+                <Row
+                  label={t.booking.dropOff}
+                  value={`${dropDate} ${dropTime}`}
+                />
+
+                <Row
+                  label={t.booking.pickup}
+                  value={`${pickDate} ${pickTime}`}
+                />
+
+                <Row
+                  label={t.booking.bags}
+                  value={String(bags)}
+                />
+
+                <Row
+                  label="Total"
+                  value={`${formatUZS(
+                    createdBooking.totalPrice
+                  )} ${formatUSD(
+                    createdBooking.totalPrice
+                  )}`}
+                />
+
+                <Row
+                  label="Status"
+                  value={
+                    createdBooking.status
+                  }
+                />
+
+              </div>
+
+              <div className="border border-line rounded p-5 mt-4 text-center">
+
+                <h3 className="font-slab font-bold text-lg">
+                  {t.booking.yourQrCode}
+                </h3>
+
+                <p className="text-sm text-ink-soft mt-1">
+                  {t.booking.showQr}
+                </p>
+
+                {createdBooking.status === "PAID" ? (
+                  <>
+                    {qrImage ? (
+                      <div className="mt-4 flex justify-center">
+                        <img
+                          src={qrImage}
+                          alt={t.booking.qrAlt}
+                          className="w-64 h-64"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-64 h-64 mx-auto mt-4 flex items-center justify-center bg-sand rounded">
+                        <span className="text-sm text-ink-soft">
+                          {t.booking.loadingQr}
+                        </span>
+                      </div>
+                    )}
+
+                    {emailSent ? (
+                      <>
+                        <p className="text-sm font-semibold text-teal-dark mt-4">
+                          {t.booking.qrSentEmail}
+                        </p>
+
+                        <p className="text-xs text-ink-soft mt-1">
+                          {t.booking.qrEmailSentTo}
+                        </p>
+
+                        <p className="text-sm font-semibold mt-1 break-all">
+                          {customer.email}
+                        </p>
+
+                        <div className="bg-sand rounded p-3 mt-4 text-left">
+                          <p className="text-xs font-semibold">
+                            {t.booking.didntReceiveEmail}
+                          </p>
+
+                          <p className="text-xs text-ink-soft mt-1">
+                            {t.booking.checkSpam}
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-sm font-semibold text-teal-dark mt-4">
+                        {t.booking.yourQrCode} is active.
+                      </p>
+                    )}
+
+                    <div className="mt-5 rounded-xl border border-line bg-sand p-4 text-left">
+                      <p className="text-xs font-semibold text-ink-soft">
+                        Your storage location
+                      </p>
+
+                      <p className="mt-1 font-semibold text-ink">
+                        {location.name}
+                      </p>
+
+                      <p className="mt-1 text-sm text-ink-soft">
+                        {location.address}
+                      </p>
+
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {location.googleMapsUrl && (
+                          <a
+                            href={location.googleMapsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="rounded-lg border border-teal bg-white px-4 py-2 text-sm font-semibold text-teal-dark"
+                          >
+                            📍 Google Maps
+                          </a>
+                        )}
+
+                        {location.yandexMapsUrl && (
+                          <a
+                            href={location.yandexMapsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="rounded-lg border border-teal bg-white px-4 py-2 text-sm font-semibold text-teal-dark"
+                          >
+                            📍 Yandex Maps
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-64 h-64 mx-auto mt-4 flex items-center justify-center bg-sand rounded border border-line">
+                      <div className="text-center px-6">
+                        <div className="text-3xl mb-2">🔒</div>
+                        <p className="text-sm font-semibold text-ink">
+                          {t.booking.qrWaitingPayment}
+                        </p>
+                        <p className="text-xs text-ink-soft mt-2">
+                          {t.booking.yourQrCode} will appear here after
+                          the payment is successfully verified.
+                        </p>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-ink-soft mt-4">
+                      {t.booking.qrEmailAfterPayment}{" "}<strong>{customer.email}</strong>
+                    </p>
+                  </>
+                )}
+
+              </div>
+
+              <div className="border border-line rounded p-4 mt-4">
+
+                <h3 className="font-semibold mb-2">
+                  {t.booking.bagTags}
+                </h3>
+
+                <p className="text-xs text-ink-soft mb-3">
+                  {t.booking.bagTagsDescription}
+                </p>
+
+                <div className="space-y-2">
+
+                  {createdBooking.bagTags.map(
+                    (tag) => (
+                      <div
+                        key={tag}
+                        className="bg-sand rounded px-3 py-2 font-mono text-sm"
+                      >
+                        {tag}
+                      </div>
+                    )
+                  )}
 
             {createdBooking && (
               <div className="space-y-6 text-left">

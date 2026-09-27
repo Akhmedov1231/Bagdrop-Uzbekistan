@@ -290,6 +290,7 @@ export async function POST(request: Request) {
         id,
         city,
         name,
+        partner_id,
         price_per_bag,
         capacity,
         opening_time,
@@ -630,6 +631,45 @@ export async function POST(request: Request) {
             "Could not create bag records.",
         },
         { status: 500 }
+      );
+    }
+
+    // --------------------------------------------------
+    // 13.5. Create notifications
+    // --------------------------------------------------
+
+    const notificationRows = [
+      {
+        recipient_type: "ADMIN",
+        recipient_id: null,
+        location_id: location.id,
+        booking_id: booking.id,
+        type: "NEW_BOOKING",
+        title: "New booking",
+        message: `New booking ${booking.booking_number} was created at ${location.name}.`,
+      },
+    ];
+
+    if (location.partner_id) {
+      notificationRows.push({
+        recipient_type: "PARTNER",
+        recipient_id: location.partner_id,
+        location_id: location.id,
+        booking_id: booking.id,
+        type: "NEW_BOOKING",
+        title: "New booking",
+        message: `New booking ${booking.booking_number} was created at your location.`,
+      });
+    }
+
+    const { error: notificationsError } = await supabase
+      .from("notifications")
+      .insert(notificationRows);
+
+    if (notificationsError) {
+      console.error(
+        "Notification creation error:",
+        notificationsError
       );
     }
 

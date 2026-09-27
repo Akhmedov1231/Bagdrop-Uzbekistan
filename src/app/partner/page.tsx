@@ -47,6 +47,19 @@ type Booking = {
   bags: Bag[];
 };
 
+type Notification = {
+  id: string;
+  recipient_type: string;
+  recipient_id: string | null;
+  location_id: string | null;
+  booking_id: string | null;
+  type: string;
+  title: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+};
+
 const STATUSES = [
   "PENDING_PAYMENT",
   "PAID",
@@ -94,12 +107,21 @@ export default function PartnerDashboardPage() {
   const [loadingLocations, setLoadingLocations] =
     useState(true);
 
+  const [notifications, setNotifications] =
+    useState<Notification[]>([]);
+  const [notificationsOpen, setNotificationsOpen] =
+    useState(false);
+
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loadingBookings, setLoadingBookings] =
     useState(false);
 
   const [selectedBooking, setSelectedBooking] =
     useState<Booking | null>(null);
+
+  // A booking can be checked in/out only after its QR is scanned.
+  const [qrVerifiedBookingId, setQrVerifiedBookingId] =
+    useState("");
 
   const [detailOpen, setDetailOpen] = useState(false);
 
@@ -124,6 +146,99 @@ export default function PartnerDashboardPage() {
     useState("");
   const [actionMessage, setActionMessage] =
     useState("");
+
+  // ==================================================
+  // BAG PHOTOS — FRONT + BACK
+  // ==================================================
+
+  const [bagPhotos, setBagPhotos] = useState<
+    Record<string, { FRONT: boolean; BACK: boolean }>
+  >({});
+  const [photoLoading, setPhotoLoading] = useState(false);
+  const [photoError, setPhotoError] = useState("");
+  const [photoUploading, setPhotoUploading] = useState("");
+
+  // ==================================================
+  // NOTIFICATIONS
+  // ==================================================
+
+  async function loadNotifications() {
+    try {
+      const response = await fetch(
+        "/api/partner/notifications",
+        { cache: "no-store" }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.ok) {
+        throw new Error(
+          result.error || "Could not load notifications."
+        );
+      }
+
+      setNotifications(
+        (result.notifications ?? []) as Notification[]
+      );
+    } catch (error) {
+      console.error(
+        "Could not load partner notifications:",
+        error
+      );
+    }
+  }
+
+  async function markNotificationRead(
+    notificationId: string
+  ) {
+    const target = notifications.find(
+      (notification) => notification.id === notificationId
+    );
+
+    if (!target || target.is_read) return;
+
+    const previous = notifications;
+
+    setNotifications((current) =>
+      current.map((notification) =>
+        notification.id === notificationId
+          ? { ...notification, is_read: true }
+          : notification
+      )
+    );
+
+    try {
+      const response = await fetch(
+        "/api/partner/notifications",
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ id: notificationId }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.ok) {
+        throw new Error(
+          result.error ||
+            "Could not mark notification as read."
+        );
+      }
+    } catch (error) {
+      console.error(
+        "Could not mark partner notification as read:",
+        error
+      );
+      setNotifications(previous);
+    }
+  }
+
+  useEffect(() => {
+    loadNotifications();
+  }, []);
 
   // ==================================================
   // LOAD PARTNER LOCATIONS
@@ -244,12 +359,16 @@ export default function PartnerDashboardPage() {
   // ==================================================
 
   function openBooking(booking: Booking) {
+    // Opening from the booking list/manual lookup does not verify the QR.
+    setQrVerifiedBookingId("");
     setSelectedBooking(booking);
     setDetailOpen(true);
 
     setScanError("");
     setActionError("");
     setActionMessage("");
+    setPhotoError("");
+    loadBagPhotos(booking.id);
   }
 
   function closeBooking() {
@@ -261,7 +380,10 @@ export default function PartnerDashboardPage() {
   // QR / BOOKING LOOKUP
   // ==================================================
 
-  async function lookupBooking(value: string) {
+  async function lookupBooking(
+    value: string,
+    source: "QR" | "MANUAL" = "MANUAL"
+  ) {
     const cleanValue = value.trim();
 
     if (!cleanValue) {
@@ -344,9 +466,18 @@ export default function PartnerDashboardPage() {
         booking.status
       );
 
+      // QR scan verifies this booking for the next action.
+      if (source === "QR") {
+        setQrVerifiedBookingId(booking.id);
+      } else {
+        setQrVerifiedBookingId("");
+      }
+
       // QR topilganda darhol detail ochiladi.
       setSelectedBooking(booking);
       setDetailOpen(true);
+      setPhotoError("");
+      await loadBagPhotos(booking.id);
 
       // Scan inputda oxirgi QR/token turadi.
       setScanInput(cleanValue);
@@ -484,7 +615,7 @@ export default function PartnerDashboardPage() {
 
           // QR topilganidan keyin booking
           // avtomatik ochiladi.
-          await lookupBooking(value);
+          await lookupBooking(value, "QR");
         },
         () => {
           // QR topilmagan frame'lar.
@@ -575,6 +706,101 @@ export default function PartnerDashboardPage() {
   }
 
   // ==================================================
+  // BAG PHOTOS — FRONT + BACK
+  // ==================================================
+
+  async function loadBagPhotos(bookingId: string) {
+    try {
+      setPhotoLoading(true);
+      setPhotoError("");
+
+      const response = await fetch(
+        `/api/partner/bag-photos?bookingId=${encodeURIComponent(bookingId)}`,
+        { cache: "no-store" }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.ok) {
+        throw new Error(result.error || "Could not load bag photos.");
+      }
+
+      setBagPhotos(result.photos ?? {});
+    } catch (error) {
+      console.error("Could not load bag photos:", error);
+      setBagPhotos({});
+      setPhotoError(
+        error instanceof Error
+          ? error.message
+          : "Could not load bag photos."
+      );
+    } finally {
+      setPhotoLoading(false);
+    }
+  }
+
+  async function uploadBagPhoto(
+    booking: Booking,
+    bagId: string,
+    photoType: "FRONT" | "BACK",
+    file: File
+  ) {
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setPhotoError("Please select an image file.");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setPhotoError("Image must be 10 MB or smaller.");
+      return;
+    }
+
+    try {
+      setPhotoUploading(`${bagId}:${photoType}`);
+      setPhotoError("");
+
+      const formData = new FormData();
+      formData.append("bookingId", booking.id);
+      formData.append("locationId", locationId);
+      formData.append("bagId", bagId);
+      formData.append("photoType", photoType);
+      formData.append("file", file);
+
+      const response = await fetch("/api/partner/bag-photos", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.ok) {
+        throw new Error(result.error || "Could not upload photo.");
+      }
+
+      setBagPhotos(result.photos ?? {});
+    } catch (error) {
+      console.error("Bag photo upload failed:", error);
+      setPhotoError(
+        error instanceof Error
+          ? error.message
+          : "Could not upload photo."
+      );
+    } finally {
+      setPhotoUploading("");
+    }
+  }
+
+  function photosReady(booking: Booking) {
+    return (booking.bags ?? []).every(
+      (bag) =>
+        bagPhotos[bag.id]?.FRONT === true &&
+        bagPhotos[bag.id]?.BACK === true
+    );
+  }
+
+  // ==================================================
   // CHECK-IN / CHECK-OUT
   // ==================================================
 
@@ -585,6 +811,14 @@ export default function PartnerDashboardPage() {
       | "COMPLETED"
   ) {
     if (actionLoading) return;
+
+    // Both check-in and check-out require a fresh QR scan.
+    if (qrVerifiedBookingId !== booking.id) {
+      setActionError(
+        "Please scan the customer QR code first."
+      );
+      return;
+    }
 
     if (!locationId) {
       setActionError(
@@ -650,6 +884,12 @@ export default function PartnerDashboardPage() {
           ? "✓ Luggage checked in successfully."
           : "✓ Luggage checked out successfully."
       );
+
+      // QR verification is single-use. The customer must scan the same
+      // QR again when returning for checkout.
+      setQrVerifiedBookingId("");
+      setDetailOpen(false);
+      setSelectedBooking(null);
 
       await loadBookings(locationId);
     } catch (error) {
@@ -743,6 +983,9 @@ export default function PartnerDashboardPage() {
       "/partner/login";
   }
 
+  const unreadNotifications =
+    notifications.filter((notification) => !notification.is_read).length;
+
   // ==================================================
   // RENDER
   // ==================================================
@@ -756,6 +999,85 @@ export default function PartnerDashboardPage() {
         </h1>
 
         <DemoBadge label="Partner account" />
+
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setNotificationsOpen((open) => !open)}
+            className="relative w-10 h-10 rounded-full border border-line bg-white text-lg hover:bg-sand"
+            aria-label="Notifications"
+          >
+            🔔
+            {unreadNotifications > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-clay text-white text-[10px] font-bold flex items-center justify-center">
+                {unreadNotifications > 99 ? "99+" : unreadNotifications}
+              </span>
+            )}
+          </button>
+
+          {notificationsOpen && (
+            <div className="absolute right-0 top-12 z-40 w-[min(92vw,380px)] bg-white border border-line rounded-xl shadow-lg overflow-hidden">
+              <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-line">
+                <div>
+                  <h3 className="font-semibold text-sm">Notifications</h3>
+                  <p className="text-[11px] text-ink-soft mt-0.5">
+                    Notifications for your account
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={loadNotifications}
+                  className="text-xs font-semibold text-teal-dark hover:underline"
+                >
+                  Refresh
+                </button>
+              </div>
+
+              <div className="max-h-[360px] overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <div className="p-5 text-center text-sm text-ink-soft">
+                    No notifications yet.
+                  </div>
+                ) : (
+                  notifications.map((notification) => (
+                    <button
+                      key={notification.id}
+                      type="button"
+                      onClick={() => markNotificationRead(notification.id)}
+                      className={`w-full text-left px-4 py-3 border-b border-line last:border-b-0 hover:bg-sand transition-colors ${
+                        notification.is_read ? "bg-white" : "bg-sand/60"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        {!notification.is_read && (
+                          <span className="mt-1.5 w-2 h-2 rounded-full bg-clay shrink-0" />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="font-semibold text-sm text-ink">
+                              {notification.title}
+                            </p>
+                            {!notification.is_read && (
+                              <span className="text-[10px] font-bold text-clay uppercase shrink-0">
+                                New
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-ink-soft mt-1">
+                            {notification.message}
+                          </p>
+                          <p className="text-[10px] text-ink-soft mt-2">
+                            {new Date(notification.created_at).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
         <button
           type="button"
@@ -1132,23 +1454,131 @@ export default function PartnerDashboardPage() {
                   {safeStatus(
                     selectedBooking.status
                   ) === "PAID" && (
-                    <button
-                      type="button"
-                      disabled={
-                        actionLoading
+                    <>
+                      <div className="mt-4 border border-line rounded-lg p-4 bg-white">
+                        <div className="flex items-center justify-between gap-3 mb-3">
+                          <div>
+                            <h3 className="font-semibold text-sm">
+                              📸 Bag photos required
+                            </h3>
+                            <p className="text-xs text-ink-soft mt-1">
+                              Take FRONT and BACK photos for every bag before check-in.
+                            </p>
+                          </div>
+                          {photoLoading && (
+                            <span className="text-xs text-ink-soft">Loading...</span>
+                          )}
+                        </div>
+
+                        <div className="space-y-3">
+                          {(selectedBooking.bags ?? []).map((bag) => (
+                            <div
+                              key={bag.id}
+                              className="bg-sand rounded-lg p-3"
+                            >
+                              <div className="flex items-center justify-between gap-3 mb-2">
+                                <b className="font-mono text-sm">
+                                  {bag.tag_number}
+                                </b>
+                                <span className="text-xs text-ink-soft">
+                                  {bagPhotos[bag.id]?.FRONT ? "✓ FRONT" : "FRONT missing"}
+                                  {" · "}
+                                  {bagPhotos[bag.id]?.BACK ? "✓ BACK" : "BACK missing"}
+                                </span>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-2">
+                                <label className="cursor-pointer border border-line bg-white rounded-lg px-3 py-2.5 text-center text-xs font-semibold hover:bg-sand">
+                                  {photoUploading === `${bag.id}:FRONT`
+                                    ? "Uploading..."
+                                    : bagPhotos[bag.id]?.FRONT
+                                    ? "✓ FRONT photo"
+                                    : "📷 FRONT photo"}
+                                  <input
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    capture="environment"
+                                    className="hidden"
+                                    disabled={!!photoUploading}
+                                    onChange={(event) => {
+                                      const file = event.target.files?.[0];
+                                      event.currentTarget.value = "";
+                                      if (file) {
+                                        uploadBagPhoto(
+                                          selectedBooking,
+                                          bag.id,
+                                          "FRONT",
+                                          file
+                                        );
+                                      }
+                                    }}
+                                  />
+                                </label>
+
+                                <label className="cursor-pointer border border-line bg-white rounded-lg px-3 py-2.5 text-center text-xs font-semibold hover:bg-sand">
+                                  {photoUploading === `${bag.id}:BACK`
+                                    ? "Uploading..."
+                                    : bagPhotos[bag.id]?.BACK
+                                    ? "✓ BACK photo"
+                                    : "📷 BACK photo"}
+                                  <input
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    capture="environment"
+                                    className="hidden"
+                                    disabled={!!photoUploading}
+                                    onChange={(event) => {
+                                      const file = event.target.files?.[0];
+                                      event.currentTarget.value = "";
+                                      if (file) {
+                                        uploadBagPhoto(
+                                          selectedBooking,
+                                          bag.id,
+                                          "BACK",
+                                          file
+                                        );
+                                      }
+                                    }}
+                                  />
+                                </label>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {photoError && (
+                          <p className="text-red-600 text-xs mt-3">
+                            {photoError}
+                          </p>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={
+                        actionLoading ||
+                        photoLoading ||
+                        !!photoUploading ||
+                        !photosReady(selectedBooking) ||
+                        qrVerifiedBookingId !== selectedBooking.id
                       }
-                      onClick={() =>
-                        transitionBooking(
-                          selectedBooking,
-                          "CHECKED_IN"
-                        )
-                      }
-                      className="w-full mt-4 bg-teal text-white rounded-lg px-4 py-3.5 font-bold text-sm disabled:opacity-50"
-                    >
-                      {actionLoading
-                        ? "Checking in..."
-                        : "✓ CHECK IN LUGGAGE"}
-                    </button>
+                        onClick={() =>
+                          transitionBooking(
+                            selectedBooking,
+                            "CHECKED_IN"
+                          )
+                        }
+                        className="w-full mt-4 bg-teal text-white rounded-lg px-4 py-3.5 font-bold text-sm disabled:opacity-50"
+                      >
+                        {actionLoading
+                          ? "Checking in..."
+                          : qrVerifiedBookingId !== selectedBooking.id
+                          ? "📷 Scan customer QR code first"
+                          : photosReady(selectedBooking)
+                          ? "✓ CHECK IN LUGGAGE"
+                          : "📸 Take FRONT + BACK photos first"}
+                      </button>
+                    </>
                   )}
 
                   {/* CHECKED_IN -> CHECK OUT */}
@@ -1159,7 +1589,8 @@ export default function PartnerDashboardPage() {
                     <button
                       type="button"
                       disabled={
-                        actionLoading
+                        actionLoading ||
+                        qrVerifiedBookingId !== selectedBooking.id
                       }
                       onClick={() =>
                         transitionBooking(
@@ -1171,6 +1602,8 @@ export default function PartnerDashboardPage() {
                     >
                       {actionLoading
                         ? "Processing..."
+                        : qrVerifiedBookingId !== selectedBooking.id
+                        ? "📷 Scan customer QR code first"
                         : "✓ CHECK OUT LUGGAGE"}
                     </button>
                   )}
