@@ -99,7 +99,42 @@ export async function getAuthenticatedAdmin() {
  * va public.partner_users jadvalida o'z partneriga
  * bog'langan bo'lishi kerak.
  */
-export async function getPartnerForUser(userId: string) {
+async function persistPartnerMembership(
+  supabaseAdmin: any,
+  userId: string,
+  partnerId: string
+) {
+  const { error } = await supabaseAdmin
+    .from("partner_users")
+    .upsert(
+      { user_id: userId, partner_id: partnerId },
+      { onConflict: "user_id", ignoreDuplicates: true }
+    );
+
+  if (error) {
+    console.error("Partner membership migration failed:", error);
+    return false;
+  }
+
+  const { data: membership, error: lookupError } = await supabaseAdmin
+    .from("partner_users")
+    .select("partner_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (lookupError) {
+    console.error("Partner membership verification failed:", lookupError);
+    return false;
+  }
+
+  return membership?.partner_id === partnerId;
+}
+
+export async function getPartnerForUser(
+  userId: string,
+  email?: string,
+  emailConfirmed = false
+) {
   const supabaseAdmin: any = createAdminClient();
 
   const { data: membership, error: membershipError } = await supabaseAdmin
@@ -117,28 +152,76 @@ export async function getPartnerForUser(userId: string) {
     return null;
   }
 
-  if (!membership) return null;
+  if (membership) {
+    const { data: partner, error: partnerError } = await supabaseAdmin
+      .from("partners")
+      .select("*")
+      .eq("id", membership.partner_id)
+      .eq("active", true)
+      .maybeSingle();
 
-  const { data: partner, error: partnerError } = await supabaseAdmin
+    if (partnerError) {
+      console.error("Partner lookup failed:", partnerError);
+      return null;
+    }
+
+    return partner;
+  }
+
+  const { data: legacyPartner, error: legacyError } = await supabaseAdmin
     .from("partners")
     .select("*")
-    .eq("id", membership.partner_id)
+    .eq("auth_user_id", userId)
     .eq("active", true)
     .maybeSingle();
 
-  if (partnerError) {
-    console.error("Partner lookup failed:", partnerError);
+  if (!legacyError && legacyPartner) {
+    const linked = await persistPartnerMembership(
+      supabaseAdmin,
+      userId,
+      legacyPartner.id
+    );
+    return linked ? legacyPartner : null;
+  }
+
+  if (legacyError && !String(legacyError.message).includes("auth_user_id")) {
+    console.error("Legacy partner lookup failed:", legacyError);
+  }
+
+  if (!emailConfirmed || !email) return null;
+
+  const { data: emailPartner, error: emailError } = await supabaseAdmin
+    .from("partners")
+    .select("*")
+    .eq("email", email.trim().toLowerCase())
+    .eq("active", true)
+    .maybeSingle();
+
+  if (emailError) {
+    console.error("Verified partner email lookup failed:", emailError);
     return null;
   }
 
-  return partner;
+  if (!emailPartner) return null;
+
+  const linked = await persistPartnerMembership(
+    supabaseAdmin,
+    userId,
+    emailPartner.id
+  );
+
+  return linked ? emailPartner : null;
 }
 
 export async function getAuthenticatedPartner() {
   const user = await getAuthenticatedUser();
   if (!user) return null;
 
-  const partner = await getPartnerForUser(user.id);
+  const partner = await getPartnerForUser(
+    user.id,
+    user.email,
+    Boolean(user.email_confirmed_at)
+  );
   if (!partner) {
     return null;
   }

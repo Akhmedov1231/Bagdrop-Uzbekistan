@@ -38,7 +38,11 @@ export async function GET() {
     );
 
     stage = "partnerQuery";
-    const partner = await getPartnerForUser(user.id);
+    const partner = await getPartnerForUser(
+      user.id,
+      user.email,
+      Boolean(user.email_confirmed_at)
+    );
 
     // ==========================================
     // 4. PARTNER TOPILMADI
