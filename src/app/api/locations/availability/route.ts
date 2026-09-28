@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { BOOKING_CONFIG } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
@@ -77,6 +78,13 @@ export async function GET(request: Request) {
       );
     }
 
+    if (selectedDropoff < new Date()) {
+      return NextResponse.json(
+        { ok: false, error: "Drop-off time must be in the future." },
+        { status: 400 }
+      );
+    }
+
     // Check built-in mock locations first for demo locations
     const { LOCATIONS } = await import("@/lib/mockData");
     const mockLoc = LOCATIONS.find((l) => l.id === locationId || l.slug === locationId);
@@ -116,6 +124,24 @@ export async function GET(request: Request) {
       );
     }
 
+    const expiredBefore = new Date(
+      Date.now() - BOOKING_CONFIG.paymentWindowMinutes * 60 * 1000
+    ).toISOString();
+    const { error: expirationError } = await supabase
+      .from("bookings")
+      .update({ status: "EXPIRED" })
+      .eq("location_id", locationId)
+      .eq("status", "PENDING_PAYMENT")
+      .lt("created_at", expiredBefore);
+
+    if (expirationError) {
+      console.error("Could not expire unpaid bookings:", expirationError);
+      return NextResponse.json(
+        { ok: false, error: "Could not refresh booking availability." },
+        { status: 500 }
+      );
+    }
+
     // Get active bookings for this location.
     const { data: bookings, error: bookingsError } =
       await supabase
@@ -128,7 +154,8 @@ export async function GET(request: Request) {
             dropoff_time,
             pickup_time,
             bag_count,
-            status
+            status,
+            created_at
           `
         )
         .eq("location_id", locationId)
@@ -152,6 +179,13 @@ export async function GET(request: Request) {
     let reservedBags = 0;
 
     for (const booking of bookings ?? []) {
+      const holdExpired =
+        booking.status === "PENDING_PAYMENT" &&
+        Date.now() - Date.parse(booking.created_at) >=
+          BOOKING_CONFIG.paymentWindowMinutes * 60 * 1000;
+
+      if (holdExpired) continue;
+
       const bookingDropoff =
         new Date(
           `${booking.dropoff_date}T${String(

@@ -96,33 +96,49 @@ export async function getAuthenticatedAdmin() {
  * --------------------------------------------------
  *
  * Partner user Supabase Auth orqali login qilgan bo'lishi
- * va public.partners jadvalida auth_user_id orqali
- * o'z partner yozuviga ega bo'lishi kerak.
+ * va public.partner_users jadvalida o'z partneriga
+ * bog'langan bo'lishi kerak.
  */
-export async function getAuthenticatedPartner() {
-  const user = await getAuthenticatedUser();
+export async function getPartnerForUser(userId: string) {
+  const supabaseAdmin: any = createAdminClient();
 
-  if (!user) {
-    return null;
-  }
-
-  const supabaseAdmin = createAdminClient();
-
-  const { data: partner, error } = await supabaseAdmin
-    .from("partners")
-    .select("*")
-    .eq("auth_user_id", user.id)
+  const { data: membership, error: membershipError } = await supabaseAdmin
+    .from("partner_users")
+    .select("partner_id")
+    .eq("user_id", userId)
     .maybeSingle();
 
-  if (error) {
+  if (membershipError) {
     console.error(
-      "Partner authentication lookup failed:",
-      error
+      "Partner membership lookup failed:",
+      membershipError
     );
 
     return null;
   }
 
+  if (!membership) return null;
+
+  const { data: partner, error: partnerError } = await supabaseAdmin
+    .from("partners")
+    .select("*")
+    .eq("id", membership.partner_id)
+    .eq("active", true)
+    .maybeSingle();
+
+  if (partnerError) {
+    console.error("Partner lookup failed:", partnerError);
+    return null;
+  }
+
+  return partner;
+}
+
+export async function getAuthenticatedPartner() {
+  const user = await getAuthenticatedUser();
+  if (!user) return null;
+
+  const partner = await getPartnerForUser(user.id);
   if (!partner) {
     return null;
   }

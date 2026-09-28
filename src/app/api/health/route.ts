@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -23,6 +24,46 @@ export async function GET() {
           step: "query",
           error: error.message,
           hint: "Check that migrations 0001–0003 have been run against this Supabase project.",
+        },
+        { status: 500 }
+      );
+    }
+
+    const admin: any = createAdminClient();
+    const requiredTables = [
+      { name: "payments", columns: "id, payment_url" },
+      { name: "notifications", columns: "id" },
+      { name: "bag_photos", columns: "id" },
+      { name: "api_rate_limit_windows", columns: "rate_limit_key" },
+    ];
+
+    for (const table of requiredTables) {
+      const { error: tableError } = await admin
+        .from(table.name)
+        .select(table.columns, { head: true })
+        .limit(1);
+
+      if (tableError) {
+        return NextResponse.json(
+          {
+            ok: false,
+            step: "schema",
+            error: tableError.message,
+            hint: "Run supabase/migrations/0005_backend_operations.sql.",
+          },
+          { status: 500 }
+        );
+      }
+    }
+
+    const { error: bucketError } = await admin.storage.getBucket("bag-photos");
+    if (bucketError) {
+      return NextResponse.json(
+        {
+          ok: false,
+          step: "storage",
+          error: bucketError.message,
+          hint: "Run supabase/migrations/0005_backend_operations.sql.",
         },
         { status: 500 }
       );

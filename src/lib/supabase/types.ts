@@ -197,6 +197,8 @@ export interface Database {
           booking_id: string;
           provider: PaymentProvider;
           provider_transaction_id: string | null;
+          payment_url: string | null;
+          idempotency_key: string | null;
           amount: number;
           currency: string;
           status: PaymentStatus;
@@ -208,6 +210,8 @@ export interface Database {
           booking_id: string;
           provider: PaymentProvider;
           provider_transaction_id?: string | null;
+          payment_url?: string | null;
+          idempotency_key?: string | null;
           amount: number;
           currency?: string;
           status?: PaymentStatus;
@@ -215,6 +219,63 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["payments"]["Insert"]>;
+      };
+      notifications: {
+        Row: {
+          id: string;
+          recipient_type: "ADMIN" | "PARTNER";
+          recipient_id: string | null;
+          location_id: string | null;
+          booking_id: string | null;
+          type: string;
+          title: string;
+          message: string;
+          is_read: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          recipient_type: "ADMIN" | "PARTNER";
+          recipient_id?: string | null;
+          location_id?: string | null;
+          booking_id?: string | null;
+          type: string;
+          title: string;
+          message: string;
+          is_read?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["notifications"]["Insert"]>;
+      };
+      bag_photos: {
+        Row: {
+          id: string;
+          bag_id: string;
+          photo_type: "FRONT" | "BACK";
+          storage_path: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          bag_id: string;
+          photo_type: "FRONT" | "BACK";
+          storage_path: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["bag_photos"]["Insert"]>;
+      };
+      api_rate_limit_windows: {
+        Row: {
+          rate_limit_key: string;
+          request_count: number;
+          reset_at: string;
+        };
+        Insert: {
+          rate_limit_key: string;
+          request_count: number;
+          reset_at: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["api_rate_limit_windows"]["Insert"]>;
       };
       audit_logs: {
         Row: {
@@ -236,6 +297,38 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["audit_logs"]["Insert"]>;
+      };
+    };
+    Functions: {
+      consume_api_rate_limit: {
+        Args: {
+          p_key: string;
+          p_limit: number;
+          p_window_seconds: number;
+        };
+        Returns: {
+          success: boolean;
+          remaining: number;
+          reset_at: string;
+        }[];
+      };
+      create_booking_with_capacity: {
+        Args: {
+          p_booking_number: string;
+          p_location_id: string;
+          p_customer_name: string;
+          p_customer_email: string;
+          p_customer_phone: string;
+          p_dropoff_date: string;
+          p_dropoff_time: string;
+          p_pickup_date: string;
+          p_pickup_time: string;
+          p_bag_count: number;
+          p_price_per_bag: number;
+          p_total_amount: number;
+          p_payment_window_minutes: number;
+        };
+        Returns: Database["public"]["Tables"]["bookings"]["Row"][];
       };
     };
   };

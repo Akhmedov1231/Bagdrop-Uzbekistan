@@ -193,30 +193,30 @@ export async function middleware(
     serviceRoleKey
   ) {
     try {
-      const partnerUrl =
+      const membershipUrl =
         new URL(
-          "/rest/v1/partners",
+          "/rest/v1/partner_users",
           supabaseUrl
         );
 
-      partnerUrl.searchParams.set(
+      membershipUrl.searchParams.set(
         "select",
-        "id"
+        "partner_id"
       );
 
-      partnerUrl.searchParams.set(
-        "auth_user_id",
+      membershipUrl.searchParams.set(
+        "user_id",
         `eq.${user.id}`
       );
 
-      partnerUrl.searchParams.set(
+      membershipUrl.searchParams.set(
         "limit",
         "1"
       );
 
-      const partnerResponse =
+      const membershipResponse =
         await fetch(
-          partnerUrl.toString(),
+          membershipUrl.toString(),
           {
             method: "GET",
 
@@ -232,17 +232,33 @@ export async function middleware(
           }
         );
 
-      if (
-        partnerResponse.ok
-      ) {
-        const partners =
-          await partnerResponse.json();
+      if (membershipResponse.ok) {
+        const memberships = await membershipResponse.json();
+        const partnerId = Array.isArray(memberships)
+          ? memberships[0]?.partner_id
+          : null;
 
-        isPartner =
-          Array.isArray(
-            partners
-          ) &&
-          partners.length > 0;
+        if (partnerId) {
+          const partnerUrl = new URL("/rest/v1/partners", supabaseUrl);
+          partnerUrl.searchParams.set("select", "id");
+          partnerUrl.searchParams.set("id", `eq.${partnerId}`);
+          partnerUrl.searchParams.set("active", "eq.true");
+          partnerUrl.searchParams.set("limit", "1");
+
+          const partnerResponse = await fetch(partnerUrl.toString(), {
+            method: "GET",
+            headers: {
+              apikey: serviceRoleKey,
+              Authorization: `Bearer ${serviceRoleKey}`,
+            },
+            cache: "no-store",
+          });
+
+          if (partnerResponse.ok) {
+            const partners = await partnerResponse.json();
+            isPartner = Array.isArray(partners) && partners.length > 0;
+          }
+        }
       }
     } catch (error) {
       console.error(

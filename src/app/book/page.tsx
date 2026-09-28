@@ -333,13 +333,17 @@ function BookingWizardInner() {
         body: JSON.stringify({
           bookingId: createdBooking.id,
           bookingNumber: createdBooking.bookingNumber,
-          provider: "demo",
+          provider: "click",
         }),
       });
 
       const data = await response.json();
       if (!response.ok || !data.ok) {
-        throw new Error(data.error || t.booking.paymentCreateError);
+        throw new Error(
+          data.code === "PAYMENT_PROVIDER_NOT_CONFIGURED"
+            ? t.booking.paymentNotConfigured
+            : data.error || t.booking.paymentCreateError
+        );
       }
 
       setPaymentMessage(

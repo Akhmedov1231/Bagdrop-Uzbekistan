@@ -1,6 +1,11 @@
+import "server-only";
+
+import { createHash } from "node:crypto";
+import { createAdminClient } from "@/lib/supabase/admin";
+
 /**
- * Lightweight, in-memory sliding-window rate limiter for Next.js API routes.
- * Zero external dependencies. Self-cleaning to prevent memory leaks.
+ * Shared production rate limits use Postgres so requests handled by
+ * different application instances observe the same counter.
  */
 
 interface RateLimitRecord {
@@ -48,7 +53,7 @@ export interface RateLimitResult {
 /**
  * Check if the given identifier (IP or token) has exceeded the rate limit.
  */
-export function checkRateLimit(
+function checkInMemoryRateLimit(
   identifier: string,
   options: RateLimitOptions
 ): RateLimitResult {
@@ -88,6 +93,45 @@ export function checkRateLimit(
     limit: options.maxRequests,
     remaining: options.maxRequests - record.count,
     reset: record.resetAt,
+  };
+}
+
+export async function checkRateLimit(
+  identifier: string,
+  options: RateLimitOptions
+): Promise<RateLimitResult> {
+  if (process.env.NODE_ENV !== "production") {
+    return checkInMemoryRateLimit(identifier, options);
+  }
+
+  const key = createHash("sha256")
+    .update(`${options.prefix ?? "default"}:${identifier || "anonymous"}`)
+    .digest("hex");
+  const supabase: any = createAdminClient();
+  const { data, error } = await supabase
+    .rpc("consume_api_rate_limit", {
+      p_key: key,
+      p_limit: options.maxRequests,
+      p_window_seconds: Math.ceil(options.windowMs / 1000),
+    })
+    .single();
+
+  if (error || !data) {
+    throw new Error(
+      `Could not enforce API rate limit: ${error?.message ?? "empty database response"}`
+    );
+  }
+
+  const reset = Date.parse(data.reset_at);
+  if (!Number.isFinite(reset)) {
+    throw new Error("Rate limit service returned an invalid reset time.");
+  }
+
+  return {
+    success: Boolean(data.success),
+    limit: options.maxRequests,
+    remaining: Number(data.remaining),
+    reset,
   };
 }
 

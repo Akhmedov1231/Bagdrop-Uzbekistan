@@ -16,6 +16,28 @@ function isPhotoType(value: string): value is PhotoType {
   return value === "FRONT" || value === "BACK";
 }
 
+function hasValidImageSignature(bytes: Uint8Array, contentType: string) {
+  if (contentType === "image/jpeg") {
+    return bytes.length >= 3 &&
+      bytes[0] === 0xff &&
+      bytes[1] === 0xd8 &&
+      bytes[2] === 0xff;
+  }
+
+  if (contentType === "image/png") {
+    return [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
+      .every((byte, index) => bytes[index] === byte);
+  }
+
+  if (contentType === "image/webp") {
+    return bytes.length >= 12 &&
+      String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" &&
+      String.fromCharCode(...bytes.slice(8, 12)) === "WEBP";
+  }
+
+  return false;
+}
+
 export async function GET(request: Request) {
   try {
     const partnerAuth = await getAuthenticatedPartner();
@@ -236,6 +258,13 @@ export async function POST(request: Request) {
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = new Uint8Array(arrayBuffer);
+
+    if (!hasValidImageSignature(buffer, file.type)) {
+      return NextResponse.json(
+        { ok: false, error: "File contents do not match the selected image type." },
+        { status: 400 }
+      );
+    }
 
     const { error: uploadError } = await supabase.storage
       .from(BUCKET)

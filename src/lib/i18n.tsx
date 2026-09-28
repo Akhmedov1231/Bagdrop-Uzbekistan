@@ -308,6 +308,7 @@ type TranslationSet = {
     preparingPayment: string;
     continuePayment: string;
     paymentTransactionCreated: string;
+    paymentNotConfigured: string;
     backToLocations: string;
     backToLocation: string;
     loadingLocation: string;
@@ -756,6 +757,7 @@ export const translations: Record<
       preparingPayment: "To‘lov tayyorlanmoqda...",
       continuePayment: "To‘lovga o‘tish",
       paymentTransactionCreated: "To‘lov tranzaksiyasi yaratildi. Holat:",
+      paymentNotConfigured: "To‘lov xizmati hali sozlanmagan. Hozircha pul yechilmadi.",
       backToLocations: "Joylarga qaytish",
       backToLocation: "Joyga qaytish",
       loadingLocation: "Joy yuklanmoqda...",
@@ -1188,6 +1190,7 @@ export const translations: Record<
       preparingPayment: "Подготовка оплаты...",
       continuePayment: "Перейти к оплате",
       paymentTransactionCreated: "Платёжная транзакция создана. Статус:",
+      paymentNotConfigured: "Платёжный сервис ещё не настроен. Средства не списаны.",
       backToLocations: "Назад к пунктам",
       backToLocation: "Назад к пункту",
       loadingLocation: "Загрузка пункта...",
@@ -1622,6 +1625,7 @@ export const translations: Record<
       preparingPayment: "Preparing payment...",
       continuePayment: "Continue to payment",
       paymentTransactionCreated: "Payment transaction created. Status:",
+      paymentNotConfigured: "Payments are not configured yet. No money was charged.",
       backToLocations: "Back to locations",
       backToLocation: "Back to location",
       loadingLocation: "Loading location...",

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { randomBytes } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { calculateTotal } from "@/lib/pricing";
+import { BOOKING_CONFIG } from "@/lib/config";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import {
   sanitizeName,
@@ -22,12 +24,6 @@ type CreateBookingBody = {
   phone: string;
   email: string;
 };
-
-const ACTIVE_STATUSES = [
-  "PENDING_PAYMENT",
-  "PAID",
-  "CHECKED_IN",
-];
 
 function isValidDate(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
@@ -53,10 +49,7 @@ function toMinutes(time: string) {
 }
 
 function makeBookingNumber() {
-  const random = Math.random()
-    .toString(36)
-    .slice(2, 8)
-    .toUpperCase();
+  const random = randomBytes(6).toString("hex").toUpperCase();
 
   return `BD-${new Date().getFullYear()}-${random}`;
 }
@@ -75,7 +68,7 @@ function makeBagTags(
 export async function POST(request: Request) {
   try {
     const clientIp = getClientIp(request);
-    const rateLimit = checkRateLimit(clientIp, {
+    const rateLimit = await checkRateLimit(clientIp, {
       maxRequests: 10,
       windowMs: 60 * 1000,
       prefix: "booking_create",
@@ -358,106 +351,7 @@ export async function POST(request: Request) {
     }
 
     // --------------------------------------------------
-    // 8. Get active bookings for this location
-    // --------------------------------------------------
-
-    const {
-      data: existingBookings,
-      error: bookingsError,
-    } = await supabase
-      .from("bookings")
-      .select(
-        `
-        id,
-        bag_count,
-        dropoff_date,
-        dropoff_time,
-        pickup_date,
-        pickup_time,
-        status
-      `
-      )
-      .eq("location_id", location.id)
-      .in("status", ACTIVE_STATUSES);
-
-    if (bookingsError) {
-      console.error(
-        "Bookings lookup error:",
-        bookingsError
-      );
-
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "Could not check availability.",
-        },
-        { status: 500 }
-      );
-    }
-
-    // --------------------------------------------------
-    // 9. Calculate overlapping bags
-    // --------------------------------------------------
-
-    let reservedBags = 0;
-
-    for (const existing of existingBookings ?? []) {
-      const existingDropoff =
-        toTimestamp(
-          existing.dropoff_date,
-          String(
-            existing.dropoff_time
-          ).slice(0, 5)
-        );
-
-      const existingPickup =
-        toTimestamp(
-          existing.pickup_date,
-          String(
-            existing.pickup_time
-          ).slice(0, 5)
-        );
-
-      const overlaps =
-        existingDropoff <
-          pickupTimestamp &&
-        existingPickup >
-          dropoffTimestamp;
-
-      if (overlaps) {
-        reservedBags += Number(
-          existing.bag_count
-        );
-      }
-    }
-
-    const capacity = Number(
-      location.capacity
-    );
-
-    const availableBags =
-      capacity - reservedBags;
-
-    if (bagCount > availableBags) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: `Only ${Math.max(
-            0,
-            availableBags
-          )} bag(s) are available for the selected time.`,
-          availableBags: Math.max(
-            0,
-            availableBags
-          ),
-        },
-        { status: 409 }
-      );
-    }
-
-    // --------------------------------------------------
-    // 10. Calculate price on server
+    // 8. Calculate price on server
     // --------------------------------------------------
 
     const dropoffAt =
@@ -486,87 +380,78 @@ export async function POST(request: Request) {
     }
 
     // --------------------------------------------------
-    // 11. Generate booking number
+    // 9. Generate booking number
     // --------------------------------------------------
 
     const bookingNumber =
       makeBookingNumber();
 
     // --------------------------------------------------
-    // 12. Create booking
+    // 10. Atomically reserve capacity and create booking + bags
     // --------------------------------------------------
 
     const {
       data: booking,
       error: bookingError,
     } = await supabase
-      .from("bookings")
-      .insert({
-        booking_number:
-          bookingNumber,
-
-        customer_id: null,
-
-        customer_name:
-          `${firstName.trim()} ${lastName.trim()}`,
-
-        customer_email:
-          email.trim().toLowerCase(),
-
-        customer_phone:
-          phone.trim(),
-
-        location_id:
-          location.id,
-
-        dropoff_date:
-          dropoffDate,
-
-        pickup_date:
-          pickupDate,
-
-        dropoff_time:
-          dropoffTime,
-
-        pickup_time:
-          pickupTime,
-
-        bag_count:
-          bagCount,
-
-        price_per_bag:
-          priceInfo.pricePerBag,
-
-        total_amount:
-          priceInfo.total,
-
-        currency:
-          "UZS",
-
-        status:
-          "PENDING_PAYMENT",
+      .rpc("create_booking_with_capacity", {
+        p_booking_number: bookingNumber,
+        p_location_id: location.id,
+        p_customer_name: `${firstName.trim()} ${lastName.trim()}`,
+        p_customer_email: email,
+        p_customer_phone: phone,
+        p_dropoff_date: dropoffDate,
+        p_dropoff_time: dropoffTime,
+        p_pickup_date: pickupDate,
+        p_pickup_time: pickupTime,
+        p_bag_count: bagCount,
+        p_price_per_bag: priceInfo.pricePerBag,
+        p_total_amount: priceInfo.total,
+        p_payment_window_minutes: BOOKING_CONFIG.paymentWindowMinutes,
       })
-      .select(
-        `
-        id,
-        booking_number,
-        access_token,
-        location_id,
-        dropoff_date,
-        pickup_date,
-        dropoff_time,
-        pickup_time,
-        bag_count,
-        price_per_bag,
-        total_amount,
-        currency,
-        status,
-        created_at
-      `
-      )
       .single();
 
     if (bookingError || !booking) {
+      const errorMessage = bookingError?.message ?? "";
+
+      if (errorMessage.startsWith("BOOKING_CAPACITY_EXCEEDED:")) {
+        const availableBags = Number(errorMessage.split(":")[1]);
+        return NextResponse.json(
+          {
+            ok: false,
+            error: `Only ${availableBags} bag(s) are available for the selected time.`,
+            availableBags,
+          },
+          { status: 409 }
+        );
+      }
+
+      if (errorMessage.includes("LOCATION_UNAVAILABLE")) {
+        return NextResponse.json(
+          { ok: false, error: "Location not found or inactive." },
+          { status: 404 }
+        );
+      }
+
+      const invalidBookingErrors = [
+        "INVALID_BOOKING_INTERVAL",
+        "DROPOFF_IN_PAST",
+        "BOOKING_LIMIT_EXCEEDED",
+        "OUTSIDE_OPENING_HOURS",
+        "INVALID_BOOKING_INPUT",
+      ];
+      if (
+        bookingError?.code === "22008" ||
+        bookingError?.code === "22007" ||
+        bookingError?.code === "22023" ||
+        invalidBookingErrors.some((code) => errorMessage.includes(code))
+      ) {
+        return NextResponse.json(
+          { ok: false, error: "The selected booking dates or times are invalid." },
+          { status: 400 }
+        );
+      }
+
       console.error(
         "Booking creation error:",
         bookingError
@@ -582,57 +467,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // --------------------------------------------------
-    // 13. Create bag records
-    // --------------------------------------------------
-
     const bagTags = makeBagTags(
       booking.booking_number,
       bagCount
     );
-
-    const bagRows = bagTags.map(
-      (tagNumber: string) => ({
-        booking_id:
-          booking.id,
-
-        tag_number:
-          tagNumber,
-
-        status:
-          "PENDING",
-      })
-    );
-
-    const {
-      error: bagsError,
-    } = await supabase
-      .from("bags")
-      .insert(bagRows);
-
-    if (bagsError) {
-      console.error(
-        "Bag creation error:",
-        bagsError
-      );
-
-      await supabase
-        .from("bookings")
-        .delete()
-        .eq(
-          "id",
-          booking.id
-        );
-
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "Could not create bag records.",
-        },
-        { status: 500 }
-      );
-    }
 
     // --------------------------------------------------
     // 13.5. Create notifications

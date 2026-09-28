@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 export async function POST(request: Request) {
   try {
     const clientIp = getClientIp(request);
-    const rateLimit = checkRateLimit(clientIp, {
+    const rateLimit = await checkRateLimit(clientIp, {
       maxRequests: 3,
       windowMs: 60 * 1000,
       prefix: "email_send",
@@ -79,6 +79,13 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { ok: false, error: "Booking not found." },
         { status: 404 }
+      );
+    }
+
+    if (booking.status !== "PAID") {
+      return NextResponse.json(
+        { ok: false, error: "QR email is available after payment is verified." },
+        { status: 409 }
       );
     }
 

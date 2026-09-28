@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { getAuthenticatedUser } from "@/lib/supabase/auth";
+import {
+  getAuthenticatedUser,
+  getPartnerForUser,
+} from "@/lib/supabase/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -35,64 +37,8 @@ export async function GET() {
       user.email
     );
 
-    // ==========================================
-    // 2. ADMIN CLIENT
-    // ==========================================
-
-    stage = "createAdminClient";
-
-    const supabase: any =
-      createAdminClient();
-
-    // ==========================================
-    // 3. PARTNER QUERY
-    // ==========================================
-
     stage = "partnerQuery";
-
-    const {
-      data: partner,
-      error: partnerError,
-    } = await supabase
-      .from("partners")
-      .select(`
-        id,
-        business_name,
-        contact_name,
-        email,
-        phone,
-        commission_type,
-        commission_value,
-        active,
-        auth_user_id
-      `)
-      .eq("auth_user_id", user.id)
-      .eq("active", true)
-      .maybeSingle();
-
-    if (partnerError) {
-      console.error(
-        "PARTNER SESSION - DATABASE ERROR:",
-        partnerError
-      );
-
-      return NextResponse.json(
-        {
-          ok: false,
-          stage,
-          error:
-            "Partner database query failed.",
-          details:
-            process.env.NODE_ENV !==
-            "production"
-              ? partnerError.message
-              : undefined,
-        },
-        {
-          status: 500,
-        }
-      );
-    }
+    const partner = await getPartnerForUser(user.id);
 
     // ==========================================
     // 4. PARTNER TOPILMADI
@@ -118,30 +64,7 @@ export async function GET() {
     }
 
     // ==========================================
-    // 5. AUTH USER ID MATCH
-    // ==========================================
-
-    stage = "verifyPartner";
-
-    if (
-      partner.auth_user_id !==
-      user.id
-    ) {
-      return NextResponse.json(
-        {
-          ok: false,
-          stage,
-          error:
-            "Partner account verification failed.",
-        },
-        {
-          status: 403,
-        }
-      );
-    }
-
-    // ==========================================
-    // 6. SUCCESS
+    // 5. SUCCESS
     // ==========================================
 
     console.log(

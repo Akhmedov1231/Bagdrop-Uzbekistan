@@ -161,10 +161,7 @@ export async function GET() {
       error: partnersError,
     } = await supabase
       .from("partners")
-      .select(`
-        id,
-        name
-      `);
+      .select("id, business_name");
 
     if (partnersError) {
       console.error(
@@ -178,7 +175,7 @@ export async function GET() {
         (partners ?? []).map(
           (partner: any) => [
             partner.id,
-            partner.name,
+            partner.business_name,
           ]
         )
       );

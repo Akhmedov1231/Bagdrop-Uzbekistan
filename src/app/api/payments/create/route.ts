@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { BOOKING_CONFIG } from "@/lib/config";
 import {
+  PaymentProviderNotConfiguredError,
   paymentService,
   type PaymentProvider,
 } from "@/lib/paymentService";
@@ -9,16 +11,14 @@ import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { safeParseBody, isValidUUID } from "@/lib/security";
 
 const ALLOWED_PROVIDERS: PaymentProvider[] = [
-  "atmos",
   "click",
   "payme",
-  "demo",
 ];
 
 export async function POST(request: Request) {
   try {
     const clientIp = getClientIp(request);
-    const rateLimit = checkRateLimit(clientIp, {
+    const rateLimit = await checkRateLimit(clientIp, {
       maxRequests: 10,
       windowMs: 60 * 1000,
       prefix: "payment_create",
@@ -136,7 +136,8 @@ export async function POST(request: Request) {
         booking_number,
         total_amount,
         currency,
-        status
+        status,
+        created_at
         `
       )
       .eq("id", bookingId)
@@ -200,6 +201,40 @@ export async function POST(request: Request) {
           error:
             `Booking is not awaiting payment. Current status: ${booking.status}`,
         },
+        { status: 409 }
+      );
+    }
+
+    const paymentDeadline =
+      Date.parse(booking.created_at) +
+      BOOKING_CONFIG.paymentWindowMinutes * 60 * 1000;
+
+    if (Date.now() >= paymentDeadline) {
+      const { data: expiredBooking, error: expireError } = await (supabase as any)
+        .from("bookings")
+        .update({ status: "EXPIRED" })
+        .eq("id", booking.id)
+        .eq("status", "PENDING_PAYMENT")
+        .select("id")
+        .maybeSingle();
+
+      if (expireError) {
+        console.error("Could not expire unpaid booking:", expireError);
+        return NextResponse.json(
+          { ok: false, error: "Could not refresh booking status." },
+          { status: 500 }
+        );
+      }
+
+      if (expiredBooking) {
+        return NextResponse.json(
+          { ok: false, error: "Payment window expired. Create a new booking." },
+          { status: 410 }
+        );
+      }
+
+      return NextResponse.json(
+        { ok: false, error: "Booking status changed. Reload and try again." },
         { status: 409 }
       );
     }
@@ -272,6 +307,17 @@ export async function POST(request: Request) {
       "Create payment error:",
       error
     );
+
+    if (error instanceof PaymentProviderNotConfiguredError) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: error.code,
+          error: error.message,
+        },
+        { status: 503 }
+      );
+    }
 
     const message =
       error instanceof Error
