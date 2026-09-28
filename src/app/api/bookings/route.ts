@@ -367,13 +367,11 @@ export async function POST(request: Request) {
       pickupAt
     );
 
-    // BagDrop currently supports bookings up to 24 hours.
-    if (priceInfo.hours > 24) {
+    if (priceInfo.hours > BOOKING_CONFIG.maxBookingDays * 24) {
       return NextResponse.json(
         {
           ok: false,
-          error:
-            "BagDrop bookings can currently be made for up to 24 hours.",
+          error: `BagDrop bookings can be made for up to ${BOOKING_CONFIG.maxBookingDays} days.`,
         },
         { status: 400 }
       );

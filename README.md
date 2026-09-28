@@ -19,6 +19,7 @@ This is a real full-stack app, not a static prototype. Phase 1 wires up the data
 - `supabase/migrations/0003_rls.sql` — **Row Level Security enabled on every table**, with baseline policies (public can read active locations; users read their own row/bookings; partner staff read their own partner's data; admins read everything). Booking _writes_ have no anon/authenticated policy at all on purpose — they'll go through server actions with the service-role client once Phase 3 implements the availability/pricing logic server-side, exactly as the spec requires ("never trust price/availability from the frontend").
 - `supabase/migrations/0004_seed_demo_data.sql` — **optional**, inserts one demo partner + the 3 Samarkand locations so `/api/health` has something to count immediately
 - `supabase/migrations/0005_backend_operations.sql` — required operational tables, private bag-photo storage, atomic booking/capacity RPC, shared production rate limiting, and payment schema extensions
+- `supabase/migrations/0006_booking_duration_10_days.sql` — updates the booking RPC to enforce the 10-day maximum
 - `src/app/api/health/route.ts` — a verification endpoint for this phase (see "How to test" below)
 - `.env.example` — every environment variable this app needs, with no invented values
 - Removed static export mode (`output: "export"`) from `next.config.js` — a real backend needs a real server (Vercel or any Node host), not a static file host
@@ -26,7 +27,7 @@ This is a real full-stack app, not a static prototype. Phase 1 wires up the data
 ## How to connect your Supabase project
 
 1. Create a project at https://supabase.com (free tier is fine for MVP).
-2. In the Supabase dashboard: **SQL Editor** → run `0001_schema.sql`, `0002_auth_trigger.sql`, and `0003_rls.sql` in order. Run `0004_seed_demo_data.sql` if you want demo locations, then run `0005_backend_operations.sql` before deploying the current app.
+2. In the Supabase dashboard: **SQL Editor** → run `0001_schema.sql`, `0002_auth_trigger.sql`, and `0003_rls.sql` in order. Run `0004_seed_demo_data.sql` if you want demo locations, then run `0005_backend_operations.sql` and `0006_booking_duration_10_days.sql` before deploying the current app.
 3. In the Supabase dashboard: **Project Settings → API** → copy the "Project URL", "anon public" key, and "service_role" key (click "Reveal" — keep this one secret).
 4. In this project: `cp .env.example .env.local`, then paste those three values in.
 
@@ -71,6 +72,7 @@ supabase/migrations/
   0003_rls.sql              → Row Level Security policies
   0004_seed_demo_data.sql  → optional demo partner + 3 locations
   0005_backend_operations.sql → booking, photos, notifications, and rate-limit operations
+  0006_booking_duration_10_days.sql → 10-day booking duration and DB-side enforcement
 src/
   middleware.ts             → Supabase session refresh (fails gracefully)
   lib/

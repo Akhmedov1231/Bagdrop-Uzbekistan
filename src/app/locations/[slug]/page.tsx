@@ -5,6 +5,11 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/lib/i18n";
+import { BOOKING_CONFIG } from "@/lib/config";
+import {
+  calculatePricingTier,
+  PRICE_UP_TO_12_HOURS,
+} from "@/lib/pricing";
 import {
   Luggage,
   MapPin,
@@ -48,9 +53,6 @@ type AvailabilityResult = {
 function formatMoney(value: number) {
   return `${Math.round(value).toLocaleString()} UZS`;
 }
-
-const PRICE_UP_TO_12_HOURS = 40000;
-const PRICE_UP_TO_24_HOURS = 65000;
 
 function formatTime(value: string) {
   return String(value ?? "").slice(0, 5);
@@ -272,11 +274,16 @@ export default function LocationDetailPage() {
       (1000 * 60 * 60)
     : 0;
 
-  const storagePrice =
-    storageHours <= 12 ? PRICE_UP_TO_12_HOURS : PRICE_UP_TO_24_HOURS;
-
-  const storageTier = storageHours <= 12 ? "12h" : "24h";
-  const withinMaximumStoragePeriod = storageHours > 0 && storageHours <= 24;
+  const storagePrice = calculatePricingTier(
+    `${dropoffDate}T${dropoffTime}`,
+    `${pickupDate}T${pickupTime}`
+  ).pricePerBag;
+  const storageTier = storageHours <= 12
+    ? t.locationDetail.upTo12HoursShort
+    : `${Math.ceil(storageHours / 24)} × ${t.locationDetail.hours24}`;
+  const withinMaximumStoragePeriod =
+    storageHours > 0 &&
+    storageHours <= BOOKING_CONFIG.maxBookingDays * 24;
 
   const timesWithinOpeningHours =
     isTimeInsideOpeningHours(dropoffTime, openingTime, closingTime) &&
@@ -646,7 +653,7 @@ export default function LocationDetailPage() {
                 {dateTimeValid && !withinMaximumStoragePeriod && (
                   <div className="text-xs text-rose-600 bg-rose-50 border border-rose-200 p-3 rounded-xl flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span>{t.locationDetail.max24Hours}</span>
+                    <span>{t.locationDetail.max10Days}</span>
                   </div>
                 )}
 

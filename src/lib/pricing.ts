@@ -1,8 +1,8 @@
 /**
  * BagDrop pricing
  *
- * Up to 12 hours  -> 40,000 UZS per bag
- * Up to 24 hours  -> 65,000 UZS per bag
+ * Up to 12 hours -> 40,000 UZS per bag.
+ * Longer bookings -> 65,000 UZS per started 24-hour period and bag.
  *
  * The existing booking page still expects:
  * - calculateDays()
@@ -37,7 +37,7 @@ export function calculateHours(
  * the existing booking page still uses it.
  *
  * This is only a display/helper value.
- * Actual price is calculated by the 12h / 24h pricing tiers.
+ * Actual price is calculated by the short-stay or 24-hour block rate.
  */
 export function calculateDays(
   dropoffAt: string,
@@ -73,9 +73,11 @@ export function calculatePricingTier(
     };
   }
 
+  const billableDays = Math.ceil(hours / 24);
+
   return {
     tier: 24,
-    pricePerBag: PRICE_UP_TO_24_HOURS,
+    pricePerBag: PRICE_UP_TO_24_HOURS * billableDays,
     hours,
   };
 }

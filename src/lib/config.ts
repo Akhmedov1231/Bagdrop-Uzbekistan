@@ -18,6 +18,7 @@ export const BRAND = {
 export const BOOKING_CONFIG = {
   // How many minutes an unpaid booking holds its capacity before expiring.
   paymentWindowMinutes: 30,
+  maxBookingDays: 10,
   // Absolute fallback max, per-location maxBagsPerBooking can be lower.
   hardMaxBagsPerBooking: 10,
   // Current USD to UZS rate reference for foreign tourists

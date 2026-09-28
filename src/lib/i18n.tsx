@@ -212,7 +212,7 @@ type TranslationSet = {
     spacesAvailable: string;
     noSpace: string;
     pickupAfterDropoff: string;
-    max24Hours: string;
+    max10Days: string;
     withinOpeningHours: string;
     nextStep: string;
     verifiedSimple: string;
@@ -320,11 +320,11 @@ type TranslationSet = {
     bookingDataMissing: string;
     paymentCreateError: string;
     safetyConfirmError: string;
-    max24HoursError: string;
+    max10DaysError: string;
     validEmailError: string;
     notEnoughBagsError: string;
     createBookingError: string;
-    max24HoursMessage: string;
+    max10DaysMessage: string;
     pickupAfterDropoff: string;
     arriveWithinOpeningHours: string;
     bagsAvailableForTime: string;
@@ -651,7 +651,7 @@ export const translations: Record<
       exploreFreelyText: "Yukingizni ko‘tarmasdan Samarqandni kashf eting.",
       selectStoragePeriod: "Saqlash muddatini tanlang",
       perBag: "har bir sumka uchun",
-      priceSummary: "40 000 / 12 soat · 65 000 / 24 soat",
+      priceSummary: "40 000 / 12 soatgacha · 65 000 / har boshlangan 24 soat",
       dropOff: "Topshirish",
       pickup: "Olib ketish",
       date: "Sana",
@@ -664,7 +664,7 @@ export const translations: Record<
       spacesAvailable: "Tanlangan davr uchun joy mavjud.",
       noSpace: "Bu davr uchun bo‘sh joy mavjud emas.",
       pickupAfterDropoff: "Olib ketish vaqti topshirish vaqtidan keyin bo‘lishi kerak.",
-      max24Hours: "Saqlash muddati 24 soatdan oshmasligi kerak.",
+      max10Days: "Saqlash muddati 10 kundan oshmasligi kerak.",
       withinOpeningHours: "Iltimos, joyning ish vaqti ichidagi vaqtni tanlang.",
       nextStep: "Keyingi bosqichda ma’lumotlaringiz va sumkalar sonini tasdiqlaysiz.",
       verifiedSimple: "Tekshirilgan va oddiy",
@@ -711,7 +711,7 @@ export const translations: Record<
       duration: "Davomiyligi",
       rate: "Tarif",
       rate12: "12 soatgacha · 40 000 UZS / sumka",
-      rate24: "24 soatgacha · 65 000 UZS / sumka",
+      rate24: "12 soatdan keyin · 65 000 UZS / har boshlangan 24 soat / sumka",
       hours: "soat",
       bags: "Sumkalar",
       total: "Jami",
@@ -769,11 +769,11 @@ export const translations: Record<
       bookingDataMissing: "Bron ma’lumotlari topilmadi. Iltimos, qayta urinib ko‘ring.",
       paymentCreateError: "To‘lov yaratishda xatolik yuz berdi.",
       safetyConfirmError: "Shaxsiy buyumlar xavfsizligi haqidagi eslatmani tushunganingizni tasdiqlang.",
-      max24HoursError: "BagDrop bronlari hozircha maksimal 24 soatga amalga oshiriladi.",
+      max10DaysError: "BagDrop bronlari maksimal 10 kungacha amalga oshiriladi.",
       validEmailError: "To‘g‘ri email manzilini kiriting.",
       notEnoughBagsError: "Tanlangan vaqt uchun yetarli sumka mavjud emas.",
       createBookingError: "Bron yaratib bo‘lmadi.",
-      max24HoursMessage: "Saqlashning maksimal muddati 24 soat. Iltimos, ertaroq olib ketish vaqtini tanlang.",
+      max10DaysMessage: "Saqlashning maksimal muddati 10 kun. Iltimos, ertaroq olib ketish vaqtini tanlang.",
       pickupAfterDropoff: "Olib ketish vaqti topshirish vaqtidan keyin bo‘lishi kerak.",
       arriveWithinOpeningHours: "Iltimos, punktning ish vaqti ichida keling",
       bagsAvailableForTime: "Tanlangan vaqtda mavjud sumkalar",
@@ -1084,7 +1084,7 @@ export const translations: Record<
       exploreFreelyText: "Наслаждайтесь Самаркандом без багажа.",
       selectStoragePeriod: "Выберите срок хранения",
       perBag: "за одну сумку",
-      priceSummary: "40 000 / 12 ч · 65 000 / 24 ч",
+      priceSummary: "40 000 / до 12 ч · 65 000 / каждые начатые 24 ч",
       dropOff: "Сдача",
       pickup: "Получение",
       date: "Дата",
@@ -1097,7 +1097,7 @@ export const translations: Record<
       spacesAvailable: "На выбранный период есть свободные места.",
       noSpace: "На выбранный период свободных мест нет.",
       pickupAfterDropoff: "Время получения должно быть позже времени сдачи.",
-      max24Hours: "Срок хранения не может превышать 24 часа.",
+      max10Days: "Срок хранения не может превышать 10 дней.",
       withinOpeningHours: "Выберите время в пределах часов работы пункта.",
       nextStep: "На следующем шаге вы подтвердите данные и количество сумок.",
       verifiedSimple: "Проверено и просто",
@@ -1144,7 +1144,7 @@ export const translations: Record<
       duration: "Продолжительность",
       rate: "Тариф",
       rate12: "до 12 часов · 40 000 UZS / сумка",
-      rate24: "до 24 часов · 65 000 UZS / сумка",
+      rate24: "после 12 ч · 65 000 UZS / каждые начатые 24 ч / сумка",
       hours: "час.",
       bags: "Сумки",
       total: "Итого",
@@ -1202,11 +1202,11 @@ export const translations: Record<
       bookingDataMissing: "Данные бронирования не найдены. Попробуйте ещё раз.",
       paymentCreateError: "Не удалось создать платёж.",
       safetyConfirmError: "Подтвердите, что вы понимаете предупреждение о безопасности личных вещей.",
-      max24HoursError: "Сейчас бронирование BagDrop возможно максимум на 24 часа.",
+      max10DaysError: "Сейчас бронирование BagDrop возможно максимум на 10 дней.",
       validEmailError: "Введите корректный email.",
       notEnoughBagsError: "На выбранное время недостаточно свободных мест.",
       createBookingError: "Не удалось создать бронирование.",
-      max24HoursMessage: "Максимальная продолжительность хранения — 24 часа. Выберите более раннее время получения.",
+      max10DaysMessage: "Максимальная продолжительность хранения — 10 дней. Выберите более раннее время получения.",
       pickupAfterDropoff: "Время получения должно быть позже времени сдачи.",
       arriveWithinOpeningHours: "Пожалуйста, приходите в часы работы пункта",
       bagsAvailableForTime: "Свободный багаж на выбранное время",
@@ -1519,7 +1519,7 @@ export const translations: Record<
       exploreFreelyText: "Enjoy Samarkand without carrying your luggage.",
       selectStoragePeriod: "Select your storage period",
       perBag: "per bag",
-      priceSummary: "40,000 / 12h · 65,000 / 24h",
+      priceSummary: "40,000 / up to 12h · 65,000 / each started 24h",
       dropOff: "Drop-off",
       pickup: "Pickup",
       date: "Date",
@@ -1532,7 +1532,7 @@ export const translations: Record<
       spacesAvailable: "Spaces are available for your selected period.",
       noSpace: "No space is available for this period.",
       pickupAfterDropoff: "Pickup must be after drop-off.",
-      max24Hours: "Storage period cannot exceed 24 hours.",
+      max10Days: "Storage period cannot exceed 10 days.",
       withinOpeningHours: "Please choose times within the location's opening hours.",
       nextStep: "You'll confirm your details and bag count on the next step.",
       verifiedSimple: "Verified & simple",
@@ -1579,7 +1579,7 @@ export const translations: Record<
       duration: "Duration",
       rate: "Rate",
       rate12: "Up to 12 hours · 40,000 UZS / bag",
-      rate24: "Up to 24 hours · 65,000 UZS / bag",
+      rate24: "After 12h · 65,000 UZS / each started 24h / bag",
       hours: "hours",
       bags: "Bags",
       total: "Total",
@@ -1637,11 +1637,11 @@ export const translations: Record<
       bookingDataMissing: "Booking information was not found. Please try again.",
       paymentCreateError: "Payment creation failed.",
       safetyConfirmError: "Please confirm that you understand the personal items safety notice.",
-      max24HoursError: "BagDrop bookings can currently be made for up to 24 hours.",
+      max10DaysError: "BagDrop bookings can currently be made for up to 10 days.",
       validEmailError: "Please enter a valid email address.",
       notEnoughBagsError: "Not enough bags are available for this selected time.",
       createBookingError: "Could not create booking.",
-      max24HoursMessage: "Maximum storage duration is 24 hours. Please choose an earlier pickup time.",
+      max10DaysMessage: "Maximum storage duration is 10 days. Please choose an earlier pickup time.",
       pickupAfterDropoff: "Pickup must be after drop-off.",
       arriveWithinOpeningHours: "Please arrive within the location's opening hours",
       bagsAvailableForTime: "Bags available for this time",

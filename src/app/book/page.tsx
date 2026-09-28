@@ -306,7 +306,7 @@ function BookingWizardInner() {
     Boolean(pickDate) &&
     Boolean(pickTime) &&
     new Date(pickupAt) > new Date(dropoffAt) &&
-    storageHours <= 24;
+    storageHours <= BOOKING_CONFIG.maxBookingDays * 24;
 
   const emailLooksValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email.trim());
 
@@ -368,8 +368,8 @@ function BookingWizardInner() {
       return;
     }
 
-    if (priceInfo.hours > 24) {
-      setBookingError(t.booking.max24HoursError);
+    if (priceInfo.hours > BOOKING_CONFIG.maxBookingDays * 24) {
+      setBookingError(t.booking.max10DaysError);
       setStep(1);
       return;
     }
@@ -611,10 +611,11 @@ function BookingWizardInner() {
               </div>
             )}
 
-            {new Date(pickupAt) > new Date(dropoffAt) && storageHours > 24 && (
+            {new Date(pickupAt) > new Date(dropoffAt) &&
+              storageHours > BOOKING_CONFIG.maxBookingDays * 24 && (
               <div className="text-xs text-rose-600 bg-rose-50 border border-rose-200 p-3 rounded-xl flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
-                <span>{t.booking.max24HoursMessage}</span>
+                <span>{t.booking.max10DaysMessage}</span>
               </div>
             )}
 
