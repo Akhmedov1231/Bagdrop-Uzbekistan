@@ -31,6 +31,27 @@ This is a real full-stack app, not a static prototype. Phase 1 wires up the data
 3. In the Supabase dashboard: **Project Settings → API** → copy the "Project URL", "anon public" key, and "service_role" key (click "Reveal" — keep this one secret).
 4. In this project: `cp .env.example .env.local`, then paste those three values in.
 
+## Automated Supabase migrations
+
+The `Supabase migrations` GitHub Actions workflow runs `supabase db push` when migration files are pushed to `main`. Before enabling it, add these repository settings under **Settings → Secrets and variables → Actions**:
+
+- Secret `SUPABASE_ACCESS_TOKEN` — a Supabase personal access token
+- Secret `SUPABASE_DB_PASSWORD` — the database password
+- Variable `SUPABASE_PROJECT_REF` — `itgdmlephzbrsejrdrmew`
+
+This project has migrations that may already have been run manually in SQL Editor. Supabase CLI does not infer that from the schema, so baseline the remote migration history once before enabling automatic pushes:
+
+```bash
+supabase login
+supabase link --project-ref itgdmlephzbrsejrdrmew
+supabase migration list --linked
+supabase migration repair 0001 0002 0003 0005 --status applied --linked
+```
+
+Only mark migrations as applied if their SQL has already run successfully on this project. Add `0004` to the repair command only if its optional demo seed SQL was already run. Add `0006` only if its 10-day function update was already run; otherwise leave it pending so the first workflow run applies it.
+
+After verifying the migration list, set repository variable `SUPABASE_MIGRATIONS_BASELINED` to `true`, then run **Actions → Supabase migrations → Run workflow** once. Future migration commits to `main` will be previewed with `db push --dry-run` and applied automatically. The workflow is guarded and exits without changing the database until the baseline variable and credentials are configured.
+
 ## Exact commands to run the app
 
 ```bash
