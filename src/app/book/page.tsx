@@ -133,6 +133,11 @@ function BookingWizardInner() {
         const result = await response.json();
         if (!result.ok) throw new Error(result.error || "Failed to load locations");
 
+        if (result.source !== "database") {
+          setLocationError(t.booking.bookingBackendUnavailable);
+          return;
+        }
+
         const apiLocation = (result.locations as ApiLocation[]).find(
           (item) => item.slug === slug
         );

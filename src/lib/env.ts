@@ -15,6 +15,14 @@ function getEnv(name: string, fallback: string = ""): string {
   return value;
 }
 
+function getRequiredEnv(name: string): string {
+  const value = process.env[name]?.trim();
+  if (!value) {
+    throw new Error(`Missing required environment variable "${name}".`);
+  }
+  return value;
+}
+
 export const env = {
   get supabaseUrl() {
     return getEnv(
@@ -33,7 +41,7 @@ export const env = {
     if (typeof window !== "undefined") {
       throw new Error("SUPABASE_SERVICE_ROLE_KEY must never be accessed from the browser.");
     }
-    return getEnv("SUPABASE_SERVICE_ROLE_KEY", "");
+    return getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY");
   },
   get appUrl() {
     return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";

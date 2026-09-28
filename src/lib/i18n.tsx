@@ -314,6 +314,7 @@ type TranslationSet = {
     loadLocationError: string;
     locationNotFound: string;
     locationSlugMissing: string;
+    bookingBackendUnavailable: string;
     availabilityError: string;
     bookingDataMissing: string;
     paymentCreateError: string;
@@ -761,6 +762,7 @@ export const translations: Record<
       loadLocationError: "Joyni yuklab bo‘lmadi.",
       locationNotFound: "Joy topilmadi.",
       locationSlugMissing: "Joy slug'i ko‘rsatilmagan.",
+      bookingBackendUnavailable: "Bu demo joyda bron qilish mumkin emas. Bron qilish uchun Supabase backend’ni sozlang.",
       availabilityError: "Mavjudlikni yuklab bo‘lmadi.",
       bookingDataMissing: "Bron ma’lumotlari topilmadi. Iltimos, qayta urinib ko‘ring.",
       paymentCreateError: "To‘lov yaratishda xatolik yuz berdi.",
@@ -1192,6 +1194,7 @@ export const translations: Record<
       loadLocationError: "Не удалось загрузить пункт.",
       locationNotFound: "Пункт не найден.",
       locationSlugMissing: "Не указан slug пункта.",
+      bookingBackendUnavailable: "В демо-пункте нельзя оформить бронирование. Настройте Supabase для бронирования.",
       availabilityError: "Не удалось загрузить доступность.",
       bookingDataMissing: "Данные бронирования не найдены. Попробуйте ещё раз.",
       paymentCreateError: "Не удалось создать платёж.",
@@ -1625,6 +1628,7 @@ export const translations: Record<
       loadLocationError: "Could not load location.",
       locationNotFound: "Location not found.",
       locationSlugMissing: "Location slug is missing.",
+      bookingBackendUnavailable: "Demo locations cannot accept bookings. Connect Supabase to enable booking.",
       availabilityError: "Could not load availability.",
       bookingDataMissing: "Booking information was not found. Please try again.",
       paymentCreateError: "Payment creation failed.",
