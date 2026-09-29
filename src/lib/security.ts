@@ -166,16 +166,24 @@ export async function safeParseBody<T = Record<string, unknown>>(
       return { ok: false, error: "Request body too large." };
     }
 
-    const data = JSON.parse(text) as T;
+    const data: unknown = JSON.parse(text);
 
-    // Prototype pollution protection
-    if (data && typeof data === "object") {
-      if ("__proto__" in data || "constructor" in data || "prototype" in data) {
-        return { ok: false, error: "Invalid request body." };
-      }
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      return { ok: false, error: "Invalid request body." };
     }
 
-    return { ok: true, data };
+    // Prototype pollution protection. Must check OWN keys only: the `in`
+    // operator walks the prototype chain, so `"constructor" in {}` is true
+    // and every plain object would be rejected.
+    if (
+      Object.prototype.hasOwnProperty.call(data, "__proto__") ||
+      Object.prototype.hasOwnProperty.call(data, "constructor") ||
+      Object.prototype.hasOwnProperty.call(data, "prototype")
+    ) {
+      return { ok: false, error: "Invalid request body." };
+    }
+
+    return { ok: true, data: data as T };
   } catch {
     return { ok: false, error: "Invalid JSON body." };
   }
