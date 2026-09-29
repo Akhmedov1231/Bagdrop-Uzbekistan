@@ -10,7 +10,7 @@ import DemoBadge from "@/components/DemoBadge";
 // Imported, not re-declared: the same two numbers were copied into this file
 // as local consts, so editing the tariff in pricing.ts would have left this
 // page quoting the old one with nothing to catch it.
-import { PRICE_UP_TO_12_HOURS } from "@/lib/pricing";
+import { PRICE_UP_TO_12_HOURS, PRICE_UP_TO_24_HOURS } from "@/lib/pricing";
 import { defaultSchedule } from "@/lib/bookingTime";
 import { LocationCardSkeleton, MapSkeleton } from "@/components/Skeleton";
 import { Location } from "@/lib/types";
@@ -481,6 +481,12 @@ function LocationsContent() {
                               </span>
                               <span className="block text-[10px] text-slate-400">
                                 {t.locationsPage.upTo12Hours}
+                              </span>
+                              <span className="block font-display font-bold text-sm text-ink mt-1.5">
+                                {formatMoney(PRICE_UP_TO_24_HOURS)}
+                              </span>
+                              <span className="block text-[10px] text-slate-400">
+                                {t.locationsPage.upTo24Hours}
                               </span>
                             </div>
 

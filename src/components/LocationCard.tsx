@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Location } from "@/lib/types";
 import { MapPin, Clock, ShieldCheck, ArrowRight, Sparkles, CheckCircle2 } from "lucide-react";
-import { PRICE_UP_TO_12_HOURS } from "@/lib/pricing";
+import { PRICE_UP_TO_12_HOURS, PRICE_UP_TO_24_HOURS } from "@/lib/pricing";
 
 export default function LocationCard({ location }: { location: Location }) {
   const isAvailable = (location.availableBags ?? 0) > 0;
@@ -76,7 +76,7 @@ export default function LocationCard({ location }: { location: Location }) {
       <div className="px-5 py-4 border-t border-line bg-slate-50/60 flex items-center justify-between">
         <div>
           <span className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider">
-            From / bag
+            Per bag
           </span>
           <div className="flex items-baseline gap-1 mt-0.5">
             <span className="font-display font-extrabold text-xl text-ink">
@@ -86,7 +86,16 @@ export default function LocationCard({ location }: { location: Location }) {
               {location.currency || "UZS"}
             </span>
           </div>
-          <span className="text-[11px] text-slate-400">up to 12 hours</span>
+          <span className="text-[11px] text-slate-400 block">up to 12 hours</span>
+          <div className="flex items-baseline gap-1 mt-1">
+            <span className="font-display font-extrabold text-xl text-ink">
+              {PRICE_UP_TO_24_HOURS.toLocaleString()}
+            </span>
+            <span className="text-xs font-semibold text-slate-500">
+              {location.currency || "UZS"}
+            </span>
+          </div>
+          <span className="text-[11px] text-slate-400">up to 24 hours</span>
         </div>
 
         <div>

@@ -146,6 +146,7 @@ type TranslationSet = {
     full: string;
     price: string;
     upTo12Hours: string;
+    upTo24Hours: string;
     per24Hours: string;
     hours: string;
     daily: string;
@@ -184,6 +185,7 @@ type TranslationSet = {
     closedNow: string;
     from: string;
     upTo12Hours: string;
+    upTo24Hours: string;
     hours24: string;
     upTo12HoursShort: string;
     upTo24HoursShort: string;
@@ -608,6 +610,7 @@ export const translations: Record<
       full: "To‘liq band",
       price: "Narx",
       upTo12Hours: "12 soatgacha",
+      upTo24Hours: "24 soatgacha",
       per24Hours: "/ 24 soat",
       hours: "Ish vaqti",
       daily: "har kuni",
@@ -641,6 +644,7 @@ export const translations: Record<
       closedNow: "Hozir yopiq",
       from: "Boshlang‘ich narx",
       upTo12Hours: "12 soatgacha",
+      upTo24Hours: "24 soatgacha",
       hours24: "24 soat",
       upTo12HoursShort: "12 soatgacha",
       upTo24HoursShort: "24 soatgacha",
@@ -1046,6 +1050,7 @@ export const translations: Record<
       full: "Заполнено",
       price: "Цена",
       upTo12Hours: "до 12 часов",
+      upTo24Hours: "до 24 часов",
       per24Hours: "/ 24 ч",
       hours: "Часы работы",
       daily: "ежедневно",
@@ -1079,6 +1084,7 @@ export const translations: Record<
       closedNow: "Сейчас закрыт",
       from: "Цена от",
       upTo12Hours: "до 12 часов",
+      upTo24Hours: "до 24 часов",
       hours24: "24 часа",
       upTo12HoursShort: "до 12 ч",
       upTo24HoursShort: "до 24 ч",
@@ -1486,6 +1492,7 @@ export const translations: Record<
       full: "Full",
       price: "Price",
       upTo12Hours: "up to 12 hours",
+      upTo24Hours: "up to 24 hours",
       per24Hours: "/ 24h",
       hours: "Hours",
       daily: "daily",
@@ -1519,6 +1526,7 @@ export const translations: Record<
       closedNow: "Closed now",
       from: "From",
       upTo12Hours: "up to 12 hours",
+      upTo24Hours: "up to 24 hours",
       hours24: "24 hours",
       upTo12HoursShort: "up to 12h",
       upTo24HoursShort: "up to 24h",

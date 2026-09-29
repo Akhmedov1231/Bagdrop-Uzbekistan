@@ -11,7 +11,7 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 
-import { PRICE_UP_TO_12_HOURS } from "@/lib/pricing";
+import { PRICE_UP_TO_12_HOURS, PRICE_UP_TO_24_HOURS } from "@/lib/pricing";
 
 import "leaflet/dist/leaflet.css";
 
@@ -183,11 +183,15 @@ export default function RealMap({
 
                 <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] text-slate-400 block uppercase font-bold">Price from</span>
+                    <span className="text-[10px] text-slate-400 block uppercase font-bold">Price</span>
                     <span className="font-bold text-sm text-slate-900">
                       {formatMoney(PRICE_UP_TO_12_HOURS)}
                     </span>
                     <span className="text-[10px] text-slate-400 block">up to 12 hours</span>
+                    <span className="font-bold text-sm text-slate-900 block mt-1">
+                      {formatMoney(PRICE_UP_TO_24_HOURS)}
+                    </span>
+                    <span className="text-[10px] text-slate-400 block">up to 24 hours</span>
                   </div>
 
                   <div className="text-right">

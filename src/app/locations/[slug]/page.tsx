@@ -9,6 +9,7 @@ import { BOOKING_CONFIG } from "@/lib/config";
 import {
   calculatePricingTier,
   PRICE_UP_TO_12_HOURS,
+  PRICE_UP_TO_24_HOURS,
 } from "@/lib/pricing";
 import {
   BOOKING_TZ_SUFFIX,
@@ -441,14 +442,26 @@ export default function LocationDetailPage() {
 
                   <div className="sm:text-right shrink-0 bg-brand-50/70 border border-brand-200/60 rounded-2xl p-4">
                     <span className="text-[10px] uppercase font-bold text-brand-700 tracking-wider block">
-                      {t.locationDetail.from}
+                      {t.locationDetail.price}
                     </span>
-                    <div className="font-display font-extrabold text-2xl text-ink">
-                      {formatMoney(PRICE_UP_TO_12_HOURS)}
+                    <div className="mt-1 space-y-1">
+                      <div>
+                        <span className="font-display font-extrabold text-xl text-ink">
+                          {formatMoney(PRICE_UP_TO_12_HOURS)}
+                        </span>
+                        <span className="text-xs text-ink-soft font-medium ml-1.5">
+                          {t.locationDetail.upTo12Hours}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-display font-extrabold text-xl text-ink">
+                          {formatMoney(PRICE_UP_TO_24_HOURS)}
+                        </span>
+                        <span className="text-xs text-ink-soft font-medium ml-1.5">
+                          {t.locationDetail.upTo24Hours}
+                        </span>
+                      </div>
                     </div>
-                    <span className="text-xs text-ink-soft font-medium">
-                      {t.locationDetail.upTo12Hours}
-                    </span>
                   </div>
                 </div>
 
