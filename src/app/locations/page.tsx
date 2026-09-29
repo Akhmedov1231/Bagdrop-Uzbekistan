@@ -7,6 +7,10 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import MapSection from "@/components/MapSection";
 import DemoBadge from "@/components/DemoBadge";
+// Imported, not re-declared: the same two numbers were copied into this file
+// as local consts, so editing the tariff in pricing.ts would have left this
+// page quoting the old one with nothing to catch it.
+import { PRICE_UP_TO_12_HOURS } from "@/lib/pricing";
 import { LocationCardSkeleton, MapSkeleton } from "@/components/Skeleton";
 import { Location } from "@/lib/types";
 import { LOCATIONS } from "@/lib/mockData";
@@ -47,8 +51,7 @@ function formatMoney(value: number) {
   return `${Math.round(value).toLocaleString()} UZS`;
 }
 
-const PRICE_UP_TO_12_HOURS = 40000;
-const PRICE_UP_TO_24_HOURS = 65000;
+
 
 function formatTime(value: string) {
   return String(value ?? "").slice(0, 5);

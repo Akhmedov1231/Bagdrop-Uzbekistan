@@ -11,6 +11,8 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 
+import { PRICE_UP_TO_12_HOURS } from "@/lib/pricing";
+
 import "leaflet/dist/leaflet.css";
 
 type MapLocation = {
@@ -21,7 +23,11 @@ type MapLocation = {
   address: string;
   latitude: number | string;
   longitude: number | string;
-  price_per_bag: number | string;
+  // Still accepted so callers need no change, but deliberately NOT displayed.
+  // What a customer is charged comes from src/lib/pricing.ts and does not vary
+  // by location; showing this column made the map quote prices the booking
+  // flow would never charge.
+  price_per_bag?: number | string;
   capacity: number | string;
   active: boolean;
 };
@@ -52,8 +58,12 @@ function FitMapToLocations({
   return null;
 }
 
-function createCustomPin(price: number | string) {
-  const formattedPrice = Number(price) >= 1000 ? `${Math.round(Number(price) / 1000)}k` : `${price}`;
+// The entry price, shown with a trailing "+" because the real charge depends on
+// how long the bags stay: 40,000 for up to 12 hours, then 65,000 per started
+// 24-hour block. A bare number here would be a quote the booking flow cannot
+// honour, which is exactly what the per-location column used to produce.
+function createCustomPin() {
+  const formattedPrice = `${Math.round(PRICE_UP_TO_12_HOURS / 1000)}k+`;
   return L.divIcon({
     className: "custom-map-pin",
     html: `
@@ -151,7 +161,7 @@ export default function RealMap({
               Number(location.latitude),
               Number(location.longitude),
             ]}
-            icon={createCustomPin(location.price_per_bag)}
+            icon={createCustomPin()}
           >
             <Popup className="custom-popup">
               <div className="p-1 min-w-[220px]">
@@ -170,10 +180,11 @@ export default function RealMap({
 
                 <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] text-slate-400 block uppercase font-bold">Price</span>
+                    <span className="text-[10px] text-slate-400 block uppercase font-bold">Price from</span>
                     <span className="font-bold text-sm text-slate-900">
-                      {formatMoney(location.price_per_bag)}
+                      {formatMoney(PRICE_UP_TO_12_HOURS)}
                     </span>
+                    <span className="text-[10px] text-slate-400 block">up to 12 hours</span>
                   </div>
 
                   <div className="text-right">
