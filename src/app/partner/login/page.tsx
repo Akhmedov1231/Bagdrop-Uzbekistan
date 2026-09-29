@@ -114,7 +114,7 @@ export default function PartnerLoginPage() {
                   autoComplete="email"
                   required
                   disabled={loading}
-                  className="admin-input pl-10 text-xs font-semibold"
+                  className="admin-input pl-10 font-semibold"
                 />
               </div>
             </div>
@@ -133,7 +133,7 @@ export default function PartnerLoginPage() {
                   autoComplete="current-password"
                   required
                   disabled={loading}
-                  className="admin-input pl-10 text-xs font-semibold"
+                  className="admin-input pl-10 font-semibold"
                 />
               </div>
             </div>

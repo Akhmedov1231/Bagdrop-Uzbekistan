@@ -556,7 +556,7 @@ function BookingWizardInner() {
                   min={today}
                   value={dropDate}
                   onChange={(e) => setDropDate(e.target.value)}
-                  className="admin-input font-medium text-xs"
+                  className="admin-input font-medium"
                 />
               </Field>
 
@@ -565,7 +565,7 @@ function BookingWizardInner() {
                   type="time"
                   value={dropTime}
                   onChange={(e) => setDropTime(e.target.value)}
-                  className="admin-input font-medium text-xs"
+                  className="admin-input font-medium"
                 />
               </Field>
 
@@ -575,7 +575,7 @@ function BookingWizardInner() {
                   min={dropDate}
                   value={pickDate}
                   onChange={(e) => setPickDate(e.target.value)}
-                  className="admin-input font-medium text-xs"
+                  className="admin-input font-medium"
                 />
               </Field>
 
@@ -584,7 +584,7 @@ function BookingWizardInner() {
                   type="time"
                   value={pickTime}
                   onChange={(e) => setPickTime(e.target.value)}
-                  className="admin-input font-medium text-xs"
+                  className="admin-input font-medium"
                 />
               </Field>
             </div>
@@ -756,7 +756,7 @@ function BookingWizardInner() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label={t.booking.firstName} required>
                 <input
-                  className="admin-input font-medium text-xs"
+                  className="admin-input font-medium"
                   placeholder="e.g. John"
                   value={customer.firstName}
                   onChange={(e) => setCustomer({ ...customer, firstName: e.target.value })}
@@ -765,7 +765,7 @@ function BookingWizardInner() {
 
               <Field label={t.booking.lastName} required>
                 <input
-                  className="admin-input font-medium text-xs"
+                  className="admin-input font-medium"
                   placeholder="e.g. Doe"
                   value={customer.lastName}
                   onChange={(e) => setCustomer({ ...customer, lastName: e.target.value })}
@@ -777,7 +777,7 @@ function BookingWizardInner() {
               <div className="relative">
                 <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
-                  className="admin-input pl-10 font-medium text-xs"
+                  className="admin-input pl-10 font-medium"
                   placeholder="+998 90 123 45 67"
                   value={customer.phone}
                   onChange={(e) => setCustomer({ ...customer, phone: e.target.value })}
@@ -793,7 +793,7 @@ function BookingWizardInner() {
                   required
                   autoComplete="email"
                   placeholder="you@gmail.com"
-                  className="admin-input pl-10 font-medium text-xs"
+                  className="admin-input pl-10 font-medium"
                   value={customer.email}
                   onChange={(e) => setCustomer({ ...customer, email: e.target.value })}
                 />
@@ -809,7 +809,7 @@ function BookingWizardInner() {
               <div className="relative">
                 <Send className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
-                  className="admin-input pl-10 font-medium text-xs"
+                  className="admin-input pl-10 font-medium"
                   placeholder="@username"
                   value={customer.telegram}
                   onChange={(e) => setCustomer({ ...customer, telegram: e.target.value })}

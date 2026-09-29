@@ -558,13 +558,13 @@ export default function LocationDetailPage() {
                         setDropoffDate(val);
                         if (pickupDate < val) setPickupDate(val);
                       }}
-                      className="admin-input text-xs font-semibold"
+                      className="admin-input font-semibold"
                     />
                     <input
                       type="time"
                       value={dropoffTime}
                       onChange={(e) => setDropoffTime(e.target.value)}
-                      className="admin-input text-xs font-semibold"
+                      className="admin-input font-semibold"
                     />
                   </div>
                 </div>
@@ -580,13 +580,13 @@ export default function LocationDetailPage() {
                       min={dropoffDate}
                       value={pickupDate}
                       onChange={(e) => setPickupDate(e.target.value)}
-                      className="admin-input text-xs font-semibold"
+                      className="admin-input font-semibold"
                     />
                     <input
                       type="time"
                       value={pickupTime}
                       onChange={(e) => setPickupTime(e.target.value)}
-                      className="admin-input text-xs font-semibold"
+                      className="admin-input font-semibold"
                     />
                   </div>
                 </div>

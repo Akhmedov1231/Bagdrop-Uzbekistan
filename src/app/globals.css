@@ -161,27 +161,29 @@
   z-index: 9999 !important;
 }
 
-/* Modern inputs */
-.admin-input {
-  width: 100%;
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  border-radius: 12px;
-  padding: 11px 16px;
-  font-size: 14px;
-  background: white;
-  outline: none;
-  transition: all 0.2s ease;
-}
+/* Modern inputs — in the components layer so utilities like pl-10 can override */
+@layer components {
+  .admin-input {
+    width: 100%;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    border-radius: 12px;
+    padding: 11px 16px;
+    font-size: 14px;
+    background: white;
+    outline: none;
+    transition: all 0.2s ease;
+  }
 
-.admin-input:focus {
-  border-color: #ea580c;
-  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15);
-}
+  .admin-input:focus {
+    border-color: #ea580c;
+    box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15);
+  }
 
-.admin-input:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  background-color: #f8fafc;
+  .admin-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: #f8fafc;
+  }
 }
 
 /* Custom scrollbars */
