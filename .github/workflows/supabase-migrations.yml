@@ -1,3 +1,29 @@
+# Applies pending Supabase migrations when a migration file lands on main.
+#
+# WHY THERE IS NO `supabase link` HERE
+# ------------------------------------
+# `link` talks to the Supabase Management API to read the project's status, and
+# that needs a personal access token carrying `project_admin_read`. Supabase now
+# scopes those tokens, so the CI kept failing on the token rather than on
+# anything to do with migrations:
+#
+#     Missing required permission(s): project_admin_read
+#
+# `db push --db-url` skips the Management API entirely and connects straight to
+# Postgres, which is all a migration needs. So this workflow holds exactly one
+# credential — the database password — instead of two, and a token scope can
+# never break a deploy again.
+#
+# Repository settings (Settings -> Secrets and variables -> Actions):
+#
+#   Secret    SUPABASE_ACCESS_SECRET   the DATABASE password
+#                                      (Settings -> Database), despite the name
+#   Variable  SUPABASE_PROJECT_REF     itgdmlephzbrsejdrmew
+#   Variable  SUPABASE_DB_HOST         the pooler host for the project's region
+#
+# Migration history is baselined through 0006 (README), so a run with no new
+# migration files correctly reports that there is nothing to push.
+
 name: Supabase migrations
 
 on:
@@ -30,51 +56,35 @@ jobs:
         with:
           version: latest
 
-      - name: Validate migration setup
+      - name: Build the connection string
+        id: conn
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          # Holds the DATABASE password (Settings -> Database), not the API secret
-          # the name suggests. `supabase link --password` needs that one.
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_ACCESS_SECRET }}
-          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+          DB_PASSWORD: ${{ secrets.SUPABASE_ACCESS_SECRET }}
+          PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+          DB_HOST: ${{ vars.SUPABASE_DB_HOST }}
         run: |
           set -euo pipefail
           missing=0
-          if [[ -z "$SUPABASE_ACCESS_TOKEN" ]]; then
-            echo "::error::Missing secret SUPABASE_ACCESS_TOKEN"
-            missing=1
-          fi
-          if [[ -z "$SUPABASE_DB_PASSWORD" ]]; then
-            echo "::error::Missing secret SUPABASE_ACCESS_SECRET (the database password)"
-            missing=1
-          fi
-          if [[ -z "$SUPABASE_PROJECT_REF" ]]; then
-            echo "::error::Missing repository variable SUPABASE_PROJECT_REF"
-            missing=1
-          fi
-          exit "$missing"
+          [ -n "$DB_PASSWORD" ] || { echo "::error::Missing secret SUPABASE_ACCESS_SECRET (the database password)"; missing=1; }
+          [ -n "$PROJECT_REF" ] || { echo "::error::Missing repository variable SUPABASE_PROJECT_REF"; missing=1; }
+          [ -n "$DB_HOST" ]     || { echo "::error::Missing repository variable SUPABASE_DB_HOST"; missing=1; }
+          [ "$missing" -eq 0 ] || exit 1
 
-      - name: Link Supabase project
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          # Holds the DATABASE password (Settings -> Database), not the API secret
-          # the name suggests. `supabase link --password` needs that one.
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_ACCESS_SECRET }}
-          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
-        run: supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+          # `--db-url` requires a percent-encoded string, and a password with an
+          # @ or a / in it silently produces a URL pointing somewhere else. Read
+          # it from the environment rather than argv so it never reaches `ps`.
+          ENCODED="$(python3 -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["DB_PASSWORD"], safe=""))')"
+          # The encoded form is a different string from the secret, so Actions
+          # does not mask it automatically. Register it before it can be logged.
+          echo "::add-mask::$ENCODED"
+
+          # Port 5432 on the pooler is session mode. Transaction mode (6543)
+          # does not carry the prepared statements and session state that DDL
+          # needs, so migrations must not use it.
+          echo "db_url=postgresql://postgres.${PROJECT_REF}:${ENCODED}@${DB_HOST}:5432/postgres" >> "$GITHUB_OUTPUT"
 
       - name: Preview pending migrations
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          # Holds the DATABASE password (Settings -> Database), not the API secret
-          # the name suggests. `supabase link --password` needs that one.
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_ACCESS_SECRET }}
-        run: supabase db push --linked --dry-run
+        run: supabase db push --db-url "${{ steps.conn.outputs.db_url }}" --dry-run
 
       - name: Apply pending migrations
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          # Holds the DATABASE password (Settings -> Database), not the API secret
-          # the name suggests. `supabase link --password` needs that one.
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_ACCESS_SECRET }}
-        run: supabase db push --linked --yes
+        run: supabase db push --db-url "${{ steps.conn.outputs.db_url }}"
