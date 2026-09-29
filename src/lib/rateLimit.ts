@@ -107,24 +107,39 @@ export async function checkRateLimit(
   const key = createHash("sha256")
     .update(`${options.prefix ?? "default"}:${identifier || "anonymous"}`)
     .digest("hex");
+  // Created outside the try on purpose: a missing service-role key is a
+  // configuration error and must fail loudly, not degrade silently.
   const supabase: any = createAdminClient();
-  const { data, error } = await supabase
-    .rpc("consume_api_rate_limit", {
-      p_key: key,
-      p_limit: options.maxRequests,
-      p_window_seconds: Math.ceil(options.windowMs / 1000),
-    })
-    .single();
 
+  let data: any = null;
+  let error: unknown = null;
+
+  try {
+    ({ data, error } = await supabase
+      .rpc("consume_api_rate_limit", {
+        p_key: key,
+        p_limit: options.maxRequests,
+        p_window_seconds: Math.ceil(options.windowMs / 1000),
+      })
+      .single());
+  } catch (err) {
+    error = err;
+  }
+
+  // The limiter runs before every booking, payment, email and partner request,
+  // so it must not be what takes them down. RPCs are POSTs, which supabase-js
+  // never retries, and a single transient PostgREST 5xx used to surface as a
+  // 500 "Unexpected server error." on Confirm. Fall back to the per-instance
+  // limiter instead; capacity itself is enforced atomically by the booking RPC.
   if (error || !data) {
-    throw new Error(
-      `Could not enforce API rate limit: ${error?.message ?? "empty database response"}`
-    );
+    console.error("Rate limit RPC failed; using per-instance limiter:", error);
+    return checkInMemoryRateLimit(identifier, options);
   }
 
   const reset = Date.parse(data.reset_at);
   if (!Number.isFinite(reset)) {
-    throw new Error("Rate limit service returned an invalid reset time.");
+    console.error("Rate limit RPC returned an invalid reset time:", data.reset_at);
+    return checkInMemoryRateLimit(identifier, options);
   }
 
   return {

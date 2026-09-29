@@ -319,15 +319,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Failed to create payment.";
-
+    // Internal error text (database messages and the like) stays in the log.
     return NextResponse.json(
       {
         ok: false,
-        error: message,
+        error: "Failed to create payment.",
       },
       { status: 500 }
     );
