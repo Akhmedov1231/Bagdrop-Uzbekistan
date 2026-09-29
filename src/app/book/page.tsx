@@ -71,6 +71,7 @@ type CreatedBooking = {
   qrToken: string;
   totalPrice: number;
   status: string;
+  testPayment: boolean;
   bagTags: string[];
 };
 
@@ -540,6 +541,7 @@ function BookingWizardInner() {
         qrToken: result.booking.qrToken,
         totalPrice: Number(result.booking.totalPrice),
         status: result.booking.status,
+        testPayment: Boolean(result.booking.testPayment),
         bagTags: result.booking.bagTags ?? [],
       };
 
@@ -1193,6 +1195,13 @@ function BookingWizardInner() {
                   />
                 </div>
 
+                {createdBooking.testPayment && (
+                  <div className="mt-4 text-xs text-left text-amber-800 bg-amber-50 border border-amber-200 p-3 rounded-xl flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+                    <span>{t.booking.testPaymentNotice}</span>
+                  </div>
+                )}
+
                 <div className="border border-line rounded p-5 mt-4 text-center">
                   <h3 className="font-slab font-bold text-lg">
                     {t.booking.yourQrCode}
@@ -1320,27 +1329,30 @@ function BookingWizardInner() {
                   </div>
                 </div>
 
-                <div className="space-y-3 text-left">
-                  <button
-                    type="button"
-                    onClick={startPayment}
-                    disabled={paymentLoading}
-                    className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold py-4 rounded-2xl shadow-glow-teal active:scale-95 transition-all text-sm"
-                  >
-                    <CreditCard className="w-4 h-4" />
-                    <span>
-                      {paymentLoading
-                        ? t.booking.preparingPayment
-                        : t.booking.continuePayment}
-                    </span>
-                  </button>
+                {/* A paid booking has nothing left to pay. */}
+                {createdBooking.status !== "PAID" && (
+                  <div className="space-y-3 text-left">
+                    <button
+                      type="button"
+                      onClick={startPayment}
+                      disabled={paymentLoading}
+                      className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold py-4 rounded-2xl shadow-glow-teal active:scale-95 transition-all text-sm"
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      <span>
+                        {paymentLoading
+                          ? t.booking.preparingPayment
+                          : t.booking.continuePayment}
+                      </span>
+                    </button>
 
-                  {paymentMessage && (
-                    <div className="text-xs text-slate-600 bg-slate-50 border border-slate-200 p-3.5 rounded-2xl">
-                      {paymentMessage}
-                    </div>
-                  )}
-                </div>
+                    {paymentMessage && (
+                      <div className="text-xs text-slate-600 bg-slate-50 border border-slate-200 p-3.5 rounded-2xl">
+                        {paymentMessage}
+                      </div>
+                    )}
+                  </div>
+                )}
               </>
             )}
           </motion.div>

@@ -331,6 +331,7 @@ type TranslationSet = {
     nameInvalidError: string;
     serverBusyError: string;
     tooManyAttemptsError: string;
+    testPaymentNotice: string;
     max10DaysMessage: string;
     pickupAfterDropoff: string;
     arriveWithinOpeningHours: string;
@@ -787,6 +788,7 @@ export const translations: Record<
       nameInvalidError: "Ism va familiya faqat harflardan iborat bo‘lishi kerak.",
       serverBusyError: "Serverda vaqtinchalik muammo. Birozdan so‘ng qayta urinib ko‘ring.",
       tooManyAttemptsError: "Juda ko‘p urinish bo‘ldi. Bir daqiqa kutib, qayta urinib ko‘ring.",
+      testPaymentNotice: "Test to‘lov: bu bron sinov uchun avtomatik PAID qilindi, pul yechilmadi. QR kodni hamkor panelida skanerlab tekshirishingiz mumkin.",
       max10DaysMessage: "Saqlashning maksimal muddati 10 kun. Iltimos, ertaroq olib ketish vaqtini tanlang.",
       pickupAfterDropoff: "Olib ketish vaqti topshirish vaqtidan keyin bo‘lishi kerak.",
       arriveWithinOpeningHours: "Iltimos, punktning ish vaqti ichida keling",
@@ -1227,6 +1229,7 @@ export const translations: Record<
       nameInvalidError: "Имя и фамилия должны содержать буквы.",
       serverBusyError: "Временная ошибка сервера. Повторите попытку через минуту.",
       tooManyAttemptsError: "Слишком много попыток. Подождите минуту и попробуйте снова.",
+      testPaymentNotice: "Тестовая оплата: бронь автоматически отмечена как PAID для проверки, деньги не списаны. QR-код можно проверить в кабинете партнёра.",
       max10DaysMessage: "Максимальная продолжительность хранения — 10 дней. Выберите более раннее время получения.",
       pickupAfterDropoff: "Время получения должно быть позже времени сдачи.",
       arriveWithinOpeningHours: "Пожалуйста, приходите в часы работы пункта",
@@ -1669,6 +1672,7 @@ export const translations: Record<
       nameInvalidError: "First and last name must contain letters.",
       serverBusyError: "Temporary server problem. Please try again in a moment.",
       tooManyAttemptsError: "Too many attempts. Please wait a minute and try again.",
+      testPaymentNotice: "Test payment: this booking was marked PAID automatically for testing; no money was charged. You can scan the QR code in the partner portal.",
       max10DaysMessage: "Maximum storage duration is 10 days. Please choose an earlier pickup time.",
       pickupAfterDropoff: "Pickup must be after drop-off.",
       arriveWithinOpeningHours: "Please arrive within the location's opening hours",

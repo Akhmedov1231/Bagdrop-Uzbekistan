@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { calculateTotal } from "@/lib/pricing";
 import { BOOKING_CONFIG } from "@/lib/config";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { getAuthenticatedUser } from "@/lib/supabase/auth";
 import {
   sanitizeName,
   validateEmail,
@@ -63,6 +64,76 @@ function makeBagTags(
     (_, index) =>
       `${bookingNumber}-${String(index + 1).padStart(2, "0")}`
   );
+}
+
+/**
+ * TEMPORARY test payments — see BOOKING_CONFIG.testPaymentsUntil.
+ *
+ * No payment provider is connected, so no booking can ever become PAID, and
+ * without PAID there is no QR code to scan in the partner portal. Until the
+ * cut-off, a booking made in a browser signed in as the admin or as a partner
+ * is marked PAID at once and gets a "dev_simulator" payment row, which keeps
+ * test bookings distinguishable from real ones. Anonymous customers never
+ * reach the update. Returns the updated booking, or null when nothing changed.
+ */
+async function markTestPaidForStaff(supabase: any, booking: any) {
+  if (!(Date.now() < Date.parse(BOOKING_CONFIG.testPaymentsUntil))) {
+    return null;
+  }
+
+  try {
+    // No network call for anonymous customers: without a session cookie
+    // getUser() returns immediately.
+    const user = await getAuthenticatedUser();
+    if (!user) return null;
+
+    const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+    const isAdmin = Boolean(
+      adminEmail && user.email?.trim().toLowerCase() === adminEmail
+    );
+
+    if (!isAdmin) {
+      const { data: membership, error: membershipError } = await supabase
+        .from("partner_users")
+        .select("partner_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (membershipError || !membership) return null;
+    }
+
+    const { data: paidBooking, error: updateError } = await supabase
+      .from("bookings")
+      .update({ status: "PAID" })
+      .eq("id", booking.id)
+      .eq("status", "PENDING_PAYMENT")
+      .select("*")
+      .single();
+
+    if (updateError || !paidBooking) {
+      console.error("Test payment: could not mark booking PAID:", updateError);
+      return null;
+    }
+
+    const { error: paymentError } = await supabase.from("payments").insert({
+      booking_id: booking.id,
+      provider: "dev_simulator",
+      provider_transaction_id: `test-${booking.booking_number}`,
+      amount: booking.total_amount,
+      currency: booking.currency ?? "UZS",
+      status: "paid",
+    });
+
+    if (paymentError) {
+      console.error("Test payment: could not record the payment:", paymentError);
+    }
+
+    return paidBooking;
+  } catch (error) {
+    // A test helper must never break a real booking.
+    console.error("Test payment failed:", error);
+    return null;
+  }
 }
 
 export async function POST(request: Request) {
@@ -519,6 +590,12 @@ export async function POST(request: Request) {
     );
 
     // --------------------------------------------------
+    // 13. TEMPORARY test payment for signed-in staff
+    // --------------------------------------------------
+
+    const testPaidBooking = await markTestPaidForStaff(supabase, booking);
+
+    // --------------------------------------------------
     // 13.5. Create notifications
     // --------------------------------------------------
 
@@ -609,7 +686,10 @@ export async function POST(request: Request) {
             booking.currency,
 
           status:
-            booking.status,
+            (testPaidBooking ?? booking).status,
+
+          testPayment:
+            Boolean(testPaidBooking),
 
           createdAt:
             booking.created_at,
