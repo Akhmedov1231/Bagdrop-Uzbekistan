@@ -86,5 +86,11 @@ jobs:
       - name: Preview pending migrations
         run: supabase db push --db-url "${{ steps.conn.outputs.db_url }}" --dry-run
 
+      # --yes: the CLI prompts for confirmation before applying, and CI has no
+      # TTY, so it currently proceeds on the CLI's own default. That default is
+      # the CLI's choice, not ours - if a release flips it to "no" for
+      # non-interactive runs, this step applies nothing and still exits 0. A
+      # deploy that silently does nothing and reports success is worse than one
+      # that fails.
       - name: Apply pending migrations
-        run: supabase db push --db-url "${{ steps.conn.outputs.db_url }}"
+        run: supabase db push --db-url "${{ steps.conn.outputs.db_url }}" --yes
