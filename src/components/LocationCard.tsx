@@ -56,7 +56,7 @@ export default function LocationCard({ location }: { location: Location }) {
           <div className="flex gap-2 flex-wrap mt-4">
             <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/70 px-2.5 py-1 rounded-lg">
               <ShieldCheck className="w-3 h-3 text-emerald-600" />
-              <span>Insured</span>
+              <span>Verified partner</span>
             </span>
             {location.amenities?.slice(0, 2).map((a) => (
               <span

@@ -39,7 +39,7 @@ export default function Footer() {
             <div className="flex items-center gap-3 pt-2">
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-slate-300">
                 <ShieldCheck className="w-4 h-4 text-teal-400" />
-                <span>100% Insured & Verified Luggage Points</span>
+                <span>Verified luggage storage locations</span>
               </div>
             </div>
           </div>
@@ -94,7 +94,7 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  href="https://t.me/bagdropuz"
+                  href="https://t.me/+998942671231"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2.5 text-slate-300 hover:text-white transition-colors"
@@ -102,7 +102,7 @@ export default function Footer() {
                   <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center border border-white/10">
                     <Send className="w-3.5 h-3.5 text-teal-400" />
                   </div>
-                  <span>@bagdropuz (Telegram 24/7)</span>
+                  <span>+998 94 267 12 31 (Telegram)</span>
                 </a>
               </li>
               <li className="flex items-center gap-2.5 text-slate-300">

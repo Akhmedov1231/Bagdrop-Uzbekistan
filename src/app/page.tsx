@@ -20,10 +20,8 @@ import {
   Sparkles,
   ChevronDown,
   ArrowRight,
-  Clock,
   Compass,
   CheckCircle2,
-  Check,
 } from "lucide-react";
 
 type ApiLocation = {
@@ -181,7 +179,7 @@ export default function HomePage() {
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut" }}
-              className="lg:col-span-7 space-y-6"
+              className="lg:col-span-12 space-y-6"
             >
               {/* Live Status Pill */}
               <div className="inline-flex items-center gap-2.5 bg-white/10 hover:bg-white/15 border border-white/20 rounded-full px-4 py-1.5 text-xs sm:text-sm font-medium backdrop-blur-md transition-all shadow-glow-brand">
@@ -226,86 +224,6 @@ export default function HomePage() {
               </div>
             </motion.div>
 
-            {/* Right Column: Interactive Digital Pass Showcase */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.7, delay: 0.2, ease: "easeOut" }}
-              className="lg:col-span-5 hidden lg:block"
-            >
-              <div className="relative animate-float">
-                {/* Glow backlight */}
-                <div className="absolute -inset-2 bg-gradient-to-tr from-brand-500 to-teal-400 rounded-4xl blur-2xl opacity-40 animate-pulse" />
-
-                {/* Modern Digital Luggage Pass Card */}
-                <div className="relative bg-white text-ink rounded-3xl p-7 shadow-ticket border border-white/80 overflow-hidden">
-                  {/* Decorative Background Watermark */}
-                  <div className="absolute -bottom-10 -right-10 text-slate-100 opacity-40 pointer-events-none">
-                    <Luggage className="w-48 h-48" />
-                  </div>
-
-                  {/* Header */}
-                  <div className="flex items-center justify-between border-b border-line pb-4 mb-5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-500 to-amber-400 flex items-center justify-center text-white shadow-sm">
-                        <Luggage className="w-5 h-5 stroke-[2.2]" />
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-brand-600 block">
-                          BagDrop Digital Pass
-                        </span>
-                        <span className="font-display font-bold text-base text-ink">
-                          BD-2026-SAMARKAND
-                        </span>
-                      </div>
-                    </div>
-
-                    <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs font-bold px-3 py-1 rounded-full border border-emerald-200">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      Active
-                    </span>
-                  </div>
-
-                  {/* Pass Body Details */}
-                  <div className="space-y-3 text-xs text-ink-soft">
-                    <div className="flex justify-between items-center py-1.5 border-b border-line/50">
-                      <span className="font-medium">Drop Location</span>
-                      <b className="text-ink font-semibold">Registan Square Central</b>
-                    </div>
-                    <div className="flex justify-between items-center py-1.5 border-b border-line/50">
-                      <span className="font-medium">Luggage Cover</span>
-                      <b className="text-ink font-semibold">2 Bags • $500 Guarantee</b>
-                    </div>
-                    <div className="flex justify-between items-center py-1.5">
-                      <span className="font-medium">Security Seal</span>
-                      <b className="text-teal-600 font-bold flex items-center gap-1">
-                        <Check className="w-3.5 h-3.5" /> Verified QR Check-in
-                      </b>
-                    </div>
-                  </div>
-
-                  {/* Perforated Divider */}
-                  <div className="relative my-4 flex items-center justify-between">
-                    <div className="w-full border-t-2 border-dashed border-line/80" />
-                  </div>
-
-                  {/* Pass Footer */}
-                  <div className="flex items-center justify-between pt-1">
-                    <div className="flex items-center gap-2 text-xs text-ink-soft">
-                      <Clock className="w-4 h-4 text-brand-500" />
-                      <span>08:00 – 22:00 Daily</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-[10px] uppercase tracking-wider text-slate-400 block font-bold">Price</span>
-                      <span className="font-display font-black text-lg text-brand-600">
-                        40,000 <span className="text-xs font-sans font-semibold text-slate-500">UZS / day</span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-
           </div>
 
           {/* Key Metric Counters */}
@@ -313,7 +231,7 @@ export default function HomePage() {
             {[
               { stat: "100%", label: "Verified Locations", desc: "Hand-picked storage partners" },
               { stat: "< 2 min", label: "Instant Booking", desc: "No paper, QR check-in & out" },
-              { stat: "$500+", label: "Luggage Guarantee", desc: "Comprehensive item insurance" },
+              { stat: "QR", label: "Digital Check-in", desc: "Booking confirmation on your phone" },
               { stat: "24/7", label: "Customer Care", desc: "Telegram & WhatsApp support" },
             ].map((m, idx) => (
               <motion.div

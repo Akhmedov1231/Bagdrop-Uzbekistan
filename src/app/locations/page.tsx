@@ -517,7 +517,7 @@ function LocationsContent() {
                           <div className="flex items-center justify-between mt-5 pt-4 border-t border-slate-100">
                             <div className="flex items-center gap-2 text-xs font-semibold text-teal-700">
                               <ShieldCheck className="w-4 h-4 text-teal-600" />
-                              <span>Insured & Monitored</span>
+                              <span>Verified storage partner</span>
                             </div>
 
                             <span className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-600 group-hover:translate-x-1 transition-transform">

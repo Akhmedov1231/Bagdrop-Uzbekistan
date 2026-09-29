@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/lib/i18n";
@@ -12,15 +13,13 @@ import {
   MapPin,
   ArrowRight,
   Headphones,
-  ShieldCheck,
-  Sparkles,
 } from "lucide-react";
 
 const CONTACT_EMAIL = "bagdropuz@gmail.com";
 const CONTACT_PHONE = "+998 94 267 12 31";
 const CONTACT_PHONE_LINK = "+998942671231";
 const WHATSAPP_LINK = "https://wa.me/998942671231";
-const TELEGRAM_LINK = "https://t.me/bagdropuz";
+const TELEGRAM_LINK = "https://t.me/+998942671231";
 
 const CONTACT_TEXT = {
   uz: {
@@ -40,6 +39,15 @@ const CONTACT_TEXT = {
     partnerTitle: "BagDrop tarmog‘i hamkori bo‘ling",
     partnerText:
       "Do‘kon, mehmonxona, hostel yoki kafeingiz bormi? Bo‘sh joyingizdan qo‘shimcha daromad oling va sayyohlarni jalb qiling.",
+    partnerName: "Ism-familiya",
+    partnerBusiness: "Biznes nomi",
+    partnerPhone: "Telefon raqami",
+    partnerCity: "Shahar",
+    partnerSubmit: "So‘rov yuborish",
+    partnerSending: "Yuborilmoqda...",
+    partnerSuccess: "So‘rovingiz yuborildi. Tez orada bog‘lanamiz.",
+    partnerError: "So‘rov yuborilmadi. Iltimos, qayta urinib ko‘ring.",
+    partnerPortal: "Hamkorlar kabineti",
     locationTitle: "Bizning Bosh Ofisimiz",
     locationText:
       "BagDrop hozirda Samarqand bo‘ylab faol xizmat ko‘rsatmoqda. Toshkent va Buxoro tez orada ochiladi.",
@@ -63,6 +71,15 @@ const CONTACT_TEXT = {
     partnerTitle: "Станьте партнёром BagDrop",
     partnerText:
       "У вас отель, кафе, магазин или хостел? Монетизируйте свободное место и привлекайте больше туристов.",
+    partnerName: "Имя и фамилия",
+    partnerBusiness: "Название бизнеса",
+    partnerPhone: "Номер телефона",
+    partnerCity: "Город",
+    partnerSubmit: "Отправить запрос",
+    partnerSending: "Отправка...",
+    partnerSuccess: "Запрос отправлен. Мы скоро свяжемся с вами.",
+    partnerError: "Не удалось отправить запрос. Попробуйте еще раз.",
+    partnerPortal: "Кабинет партнера",
     locationTitle: "Локации сети",
     locationText:
       "Сейчас BagDrop работает в Самарканде. Новые города (Ташкент, Бухара) открываются скоро.",
@@ -86,6 +103,15 @@ const CONTACT_TEXT = {
     partnerTitle: "Become a BagDrop Luggage Partner",
     partnerText:
       "Own a cafe, shop, hotel, or hostel? Monetize your unused secure space and welcome international travelers.",
+    partnerName: "Full name",
+    partnerBusiness: "Business name",
+    partnerPhone: "Phone number",
+    partnerCity: "City",
+    partnerSubmit: "Send request",
+    partnerSending: "Sending...",
+    partnerSuccess: "Your request has been sent. We will be in touch soon.",
+    partnerError: "We could not send your request. Please try again.",
+    partnerPortal: "Partner portal",
     locationTitle: "Active Headquarters & Operations",
     locationText:
       "BagDrop currently operates in Samarkand. Tashkent, Bukhara, and Khiva expanding soon.",
@@ -97,6 +123,42 @@ const CONTACT_TEXT = {
 export default function ContactPage() {
   const { language } = useLanguage();
   const text = CONTACT_TEXT[language] || CONTACT_TEXT.en;
+  const [partnerRequestStatus, setPartnerRequestStatus] = useState<
+    "idle" | "sending" | "sent" | "error"
+  >("idle");
+
+  async function submitPartnerRequest(
+    event: React.FormEvent<HTMLFormElement>
+  ) {
+    event.preventDefault();
+    setPartnerRequestStatus("sending");
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+
+    try {
+      const response = await fetch("/api/partner-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.get("name"),
+          business: formData.get("business"),
+          phone: formData.get("phone"),
+          city: formData.get("city"),
+          website: formData.get("website"),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Partner request failed.");
+      }
+
+      form.reset();
+      setPartnerRequestStatus("sent");
+    } catch {
+      setPartnerRequestStatus("error");
+    }
+  }
 
   return (
     <main className="min-h-screen bg-cream">
@@ -224,7 +286,7 @@ export default function ContactPage() {
 
         {/* PARTNER BANNER */}
         <div className="mt-10 bg-white border border-line rounded-4xl p-8 sm:p-10 shadow-card-modern">
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="max-w-2xl space-y-3">
               <div className="inline-flex items-center gap-2 text-xs font-bold text-teal-700 bg-teal-50 px-3 py-1 rounded-full border border-teal-200">
                 <Store className="w-3.5 h-3.5" />
@@ -238,13 +300,83 @@ export default function ContactPage() {
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-3 shrink-0">
+            <div>
+              <form onSubmit={submitPartnerRequest} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input
+                  name="name"
+                  required
+                  minLength={2}
+                  maxLength={100}
+                  autoComplete="name"
+                  placeholder={text.partnerName}
+                  aria-label={text.partnerName}
+                  className="min-w-0 rounded-xl border border-line bg-slate-50 px-4 py-3 text-sm text-ink placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                />
+                <input
+                  name="business"
+                  required
+                  minLength={2}
+                  maxLength={120}
+                  autoComplete="organization"
+                  placeholder={text.partnerBusiness}
+                  aria-label={text.partnerBusiness}
+                  className="min-w-0 rounded-xl border border-line bg-slate-50 px-4 py-3 text-sm text-ink placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                />
+                <input
+                  name="phone"
+                  required
+                  type="tel"
+                  minLength={5}
+                  maxLength={40}
+                  autoComplete="tel"
+                  placeholder={text.partnerPhone}
+                  aria-label={text.partnerPhone}
+                  className="min-w-0 rounded-xl border border-line bg-slate-50 px-4 py-3 text-sm text-ink placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                />
+                <input
+                  name="city"
+                  required
+                  minLength={2}
+                  maxLength={80}
+                  autoComplete="address-level2"
+                  placeholder={text.partnerCity}
+                  aria-label={text.partnerCity}
+                  className="min-w-0 rounded-xl border border-line bg-slate-50 px-4 py-3 text-sm text-ink placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                />
+                <input
+                  name="website"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  aria-hidden="true"
+                  className="hidden"
+                />
+                <button
+                  type="submit"
+                  disabled={partnerRequestStatus === "sending"}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 px-5 py-3 text-sm font-bold text-white shadow-glow-brand transition-all hover:from-brand-600 hover:to-brand-700 disabled:cursor-wait disabled:opacity-70 sm:col-span-2"
+                >
+                  <span>
+                    {partnerRequestStatus === "sending"
+                      ? text.partnerSending
+                      : text.partnerSubmit}
+                  </span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </form>
+              {partnerRequestStatus !== "idle" && partnerRequestStatus !== "sending" && (
+                <p
+                  role="status"
+                  className={`mt-3 text-sm ${partnerRequestStatus === "sent" ? "text-emerald-700" : "text-red-600"}`}
+                >
+                  {partnerRequestStatus === "sent" ? text.partnerSuccess : text.partnerError}
+                </p>
+              )}
               <Link
                 href="/partner/login"
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-bold text-xs sm:text-sm rounded-2xl px-6 py-3.5 shadow-glow-brand transition-all"
+                className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-brand-700 hover:text-brand-800"
               >
                 <Store className="w-4 h-4" />
-                <span>Partner Portal</span>
+                <span>{text.partnerPortal}</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>

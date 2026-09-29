@@ -443,10 +443,10 @@ export default function LocationDetailPage() {
                   <div className="bg-slate-50 border border-slate-200/70 rounded-2xl p-4">
                     <div className="flex items-center gap-2 text-emerald-600 mb-1">
                       <ShieldCheck className="w-4 h-4" />
-                      <span className="text-[11px] font-bold uppercase">Insurance</span>
+                      <span className="text-[11px] font-bold uppercase">Verified Location</span>
                     </div>
                     <span className="font-display font-bold text-sm text-ink">
-                      $500 Guarantee
+                      Partner storage point
                     </span>
                   </div>
                 </div>

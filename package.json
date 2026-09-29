@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:migrate:preview": "npx --yes supabase@latest db push --linked --dry-run",
+    "db:migrate": "npx --yes supabase@latest db push --linked --yes"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

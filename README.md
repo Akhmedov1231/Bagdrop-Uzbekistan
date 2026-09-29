@@ -27,9 +27,27 @@ This is a real full-stack app, not a static prototype. Phase 1 wires up the data
 ## How to connect your Supabase project
 
 1. Create a project at https://supabase.com (free tier is fine for MVP).
-2. In the Supabase dashboard: **SQL Editor** → run `0001_schema.sql`, `0002_auth_trigger.sql`, and `0003_rls.sql` in order. Run `0004_seed_demo_data.sql` if you want demo locations, then run `0005_backend_operations.sql` and `0006_booking_duration_10_days.sql` before deploying the current app.
-3. In the Supabase dashboard: **Project Settings → API** → copy the "Project URL", "anon public" key, and "service_role" key (click "Reveal" — keep this one secret).
-4. In this project: `cp .env.example .env.local`, then paste those three values in.
+2. In the Supabase dashboard: **Project Settings → API** → copy the "Project URL", "anon public" key, and "service_role" key (click "Reveal" — keep this one secret).
+3. In this project: `cp .env.example .env.local`, then paste those three values in.
+4. Link the Supabase CLI to your project, then use the migration commands below instead of running migration SQL manually.
+
+## Run Supabase migrations locally
+
+Sign in and link this workspace once:
+
+```bash
+npx --yes supabase@latest login
+npx --yes supabase@latest link --project-ref itgdmlephzbrsejdrmew
+```
+
+Preview pending migrations, then apply them:
+
+```bash
+npm run db:migrate:preview
+npm run db:migrate
+```
+
+`db:migrate` applies only migrations not yet recorded in Supabase's migration history. For a database where SQL was already run manually in the dashboard, baseline that history once using the instructions below before applying pending migrations. Do not mark a migration as applied unless its SQL completed successfully.
 
 ## Automated Supabase migrations
 
@@ -37,20 +55,11 @@ The `Supabase migrations` GitHub Actions workflow runs `supabase db push` when m
 
 - Secret `SUPABASE_ACCESS_TOKEN` — a Supabase personal access token
 - Secret `SUPABASE_DB_PASSWORD` — the database password
-- Variable `SUPABASE_PROJECT_REF` — `itgdmlephzbrsejrdrmew`
+- Variable `SUPABASE_PROJECT_REF` — `itgdmlephzbrsejdrmew`
 
-This project has migrations that may already have been run manually in SQL Editor. Supabase CLI does not infer that from the schema, so baseline the remote migration history once before enabling automatic pushes:
+The existing BagDrop Supabase project had its SQL migrations run manually, so its schema and seed data were verified before recording migrations `0001` through `0006` as applied in remote history. This baseline is complete; do not run `migration repair` again for this project. For another existing database, inspect its schema and migration history first, and mark only fully applied migrations as applied.
 
-```bash
-supabase login
-supabase link --project-ref itgdmlephzbrsejrdrmew
-supabase migration list --linked
-supabase migration repair 0001 0002 0003 0005 --status applied --linked
-```
-
-Only mark migrations as applied if their SQL has already run successfully on this project. Add `0004` to the repair command only if its optional demo seed SQL was already run. Add `0006` only if its 10-day function update was already run; otherwise leave it pending so the first workflow run applies it.
-
-After verifying the migration list, set repository variable `SUPABASE_MIGRATIONS_BASELINED` to `true`, then run **Actions → Supabase migrations → Run workflow** once. Future migration commits to `main` will be previewed with `db push --dry-run` and applied automatically. The workflow is guarded and exits without changing the database until the baseline variable and credentials are configured.
+The existing database migration history is baselined through `0006`. After adding the access token, database password, and correct project reference above, run **Actions → Supabase migrations → Run workflow** once. Future migration commits to `main` will be previewed with `db push --dry-run` and applied automatically.
 
 ## Exact commands to run the app
 

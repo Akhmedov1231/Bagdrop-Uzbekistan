@@ -11,7 +11,7 @@
 // - Information leakage (Referrer-Policy, Permissions-Policy)
 // ============================================================
 
-const SUPABASE_PROJECT = "itgdmlephzbrsejrdrmew.supabase.co";
+const SUPABASE_PROJECT = "itgdmlephzbrsejdrmew.supabase.co";
 
 const ContentSecurityPolicy = `
   default-src 'self';
