@@ -71,13 +71,24 @@ function makeBagTags(
  *
  * No payment provider is connected, so no booking can ever become PAID, and
  * without PAID there is no QR code to scan in the partner portal. Until the
- * cut-off, a booking made in a browser signed in as the admin or as a partner
- * is marked PAID at once and gets a "dev_simulator" payment row, which keeps
- * test bookings distinguishable from real ones. Anonymous customers never
- * reach the update. Returns the updated booking, or null when nothing changed.
+ * cut-off, a booking made in a browser signed in as the admin, or as an active
+ * partner booking one of its OWN locations, is marked PAID at once and gets a
+ * "dev_simulator" payment row, which keeps test bookings distinguishable from
+ * real ones. The partner restriction matters: a PAID booking never expires and
+ * would otherwise be a free check-in at another partner's premises. Anonymous
+ * customers never reach the update. Returns the updated booking, or null when
+ * nothing changed.
  */
-async function markTestPaidForStaff(supabase: any, booking: any) {
-  if (!(Date.now() < Date.parse(BOOKING_CONFIG.testPaymentsUntil))) {
+async function markTestPaidForStaff(
+  supabase: any,
+  booking: any,
+  locationPartnerId: string,
+  dropoffTimestamp: number
+) {
+  const cutoff = Date.parse(BOOKING_CONFIG.testPaymentsUntil);
+
+  // Test bookings must also be used up within the window, not dated later.
+  if (!(Date.now() < cutoff) || !(dropoffTimestamp < cutoff)) {
     return null;
   }
 
@@ -99,7 +110,22 @@ async function markTestPaidForStaff(supabase: any, booking: any) {
         .eq("user_id", user.id)
         .maybeSingle();
 
-      if (membershipError || !membership) return null;
+      if (
+        membershipError ||
+        !membership ||
+        membership.partner_id !== locationPartnerId
+      ) {
+        return null;
+      }
+
+      const { data: activePartner, error: partnerError } = await supabase
+        .from("partners")
+        .select("id")
+        .eq("id", membership.partner_id)
+        .eq("active", true)
+        .maybeSingle();
+
+      if (partnerError || !activePartner) return null;
     }
 
     const { data: paidBooking, error: updateError } = await supabase
@@ -593,7 +619,12 @@ export async function POST(request: Request) {
     // 13. TEMPORARY test payment for signed-in staff
     // --------------------------------------------------
 
-    const testPaidBooking = await markTestPaidForStaff(supabase, booking);
+    const testPaidBooking = await markTestPaidForStaff(
+      supabase,
+      booking,
+      location.partner_id,
+      dropoffTimestamp
+    );
 
     // --------------------------------------------------
     // 13.5. Create notifications

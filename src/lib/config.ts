@@ -25,7 +25,8 @@ export const BOOKING_CONFIG = {
   usdRate: 12850,
   // TEMPORARY, for end-to-end testing while no payment provider is connected.
   // Until this moment, a booking made in a browser that is signed in as the
-  // admin or as a partner is marked PAID at once (with a "dev_simulator"
+  // admin, or as a partner booking one of its own locations, with a drop-off
+  // before this moment, is marked PAID at once (with a "dev_simulator"
   // payment), so its QR code appears and can be scanned in the partner portal.
   // Customers are not affected. After this moment the code path does nothing;
   // remove it (api/bookings/route.ts, markTestPaidForStaff) once Click/Payme
