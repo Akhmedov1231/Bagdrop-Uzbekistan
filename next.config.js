@@ -13,11 +13,19 @@
 
 const SUPABASE_PROJECT = "itgdmlephzbrsejdrmew.supabase.co";
 
+// NOTE on the two openstreetmap entries below: they are not redundant.
+// A CSP host-source of `*.tile.openstreetmap.org` matches SUBDOMAINS ONLY — it
+// does not match the bare host. RealMap requests
+// https://tile.openstreetmap.org/{z}/{x}/{y}.png (OSM's current form, no
+// subdomain), so with only the wildcard every tile was blocked and the map
+// rendered as a plain grey box: the pins and the attribution still drew,
+// because neither is an image. Keep both entries — the wildcard covers the
+// older a./b./c. hosts if the URL is ever changed back.
 const ContentSecurityPolicy = `
   default-src 'self';
   script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net;
   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-  img-src 'self' data: blob: https://${SUPABASE_PROJECT} https://*.tile.openstreetmap.org https://unpkg.com;
+  img-src 'self' data: blob: https://${SUPABASE_PROJECT} https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://unpkg.com;
   font-src 'self' https://fonts.gstatic.com;
   connect-src 'self' https://${SUPABASE_PROJECT} wss://${SUPABASE_PROJECT} https://*.supabase.co;
   frame-src 'self';

@@ -83,7 +83,7 @@ function createCustomPin() {
         cursor: pointer;
         position: relative;
       ">
-        <span style="display:inline-block; width:6px; height:6px; background:#10b981; border-radius:50%; margin-right:5px;"></span>
+        <span style="flex:0 0 auto; width:6px; height:6px; background:#10b981; border-radius:50%; margin-right:5px;"></span>
         ${formattedPrice} UZS
         <div style="
           position: absolute;
@@ -98,8 +98,11 @@ function createCustomPin() {
         "></div>
       </div>
     `,
-    iconSize: [80, 32],
-    iconAnchor: [40, 32],
+    // Wide enough for the longest label the tariff can produce. The pill itself
+    // is inline-flex and sizes to its text; iconSize only tells Leaflet where to
+    // anchor it, and a value narrower than the content pulls the pin off centre.
+    iconSize: [96, 32],
+    iconAnchor: [48, 32],
     popupAnchor: [0, -32],
   });
 }
