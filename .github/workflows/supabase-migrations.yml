@@ -33,7 +33,9 @@ jobs:
       - name: Validate migration setup
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          # Holds the DATABASE password (Settings -> Database), not the API secret
+          # the name suggests. `supabase link --password` needs that one.
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_ACCESS_SECRET }}
           SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
         run: |
           set -euo pipefail
@@ -43,7 +45,7 @@ jobs:
             missing=1
           fi
           if [[ -z "$SUPABASE_DB_PASSWORD" ]]; then
-            echo "::error::Missing secret SUPABASE_DB_PASSWORD"
+            echo "::error::Missing secret SUPABASE_ACCESS_SECRET (the database password)"
             missing=1
           fi
           if [[ -z "$SUPABASE_PROJECT_REF" ]]; then
@@ -55,18 +57,24 @@ jobs:
       - name: Link Supabase project
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          # Holds the DATABASE password (Settings -> Database), not the API secret
+          # the name suggests. `supabase link --password` needs that one.
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_ACCESS_SECRET }}
           SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
 
       - name: Preview pending migrations
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          # Holds the DATABASE password (Settings -> Database), not the API secret
+          # the name suggests. `supabase link --password` needs that one.
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_ACCESS_SECRET }}
         run: supabase db push --linked --dry-run
 
       - name: Apply pending migrations
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          # Holds the DATABASE password (Settings -> Database), not the API secret
+          # the name suggests. `supabase link --password` needs that one.
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_ACCESS_SECRET }}
         run: supabase db push --linked --yes
