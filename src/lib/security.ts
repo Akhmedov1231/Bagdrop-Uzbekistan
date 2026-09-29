@@ -117,7 +117,11 @@ export function validatePhone(input: unknown): {
 } {
   if (typeof input !== "string") return { valid: false, phone: "" };
 
-  const phone = input.trim().slice(0, 20);
+  // Collapse runs of whitespace, then validate the whole value. It used to be
+  // truncated to 20 characters first, so "+998 (90) 123 - 45 - 67" passed and
+  // was stored as "+998 (90) 123 - 45 -", losing digits. PHONE_REGEX already
+  // bounds the length.
+  const phone = input.trim().replace(/\s+/g, " ");
 
   if (!PHONE_REGEX.test(phone)) {
     return { valid: false, phone: "" };

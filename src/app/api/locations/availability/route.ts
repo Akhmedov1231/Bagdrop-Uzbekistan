@@ -80,7 +80,7 @@ export async function GET(request: Request) {
 
     if (selectedDropoff < new Date()) {
       return NextResponse.json(
-        { ok: false, error: "Drop-off time must be in the future." },
+        { ok: false, code: "DROPOFF_IN_PAST", error: "Drop-off time must be in the future." },
         { status: 400 }
       );
     }
@@ -114,7 +114,15 @@ export async function GET(request: Request) {
         .eq("active", true)
         .maybeSingle();
 
-    if (locationError || !location) {
+    if (locationError) {
+      console.error("Availability location lookup failed:", locationError);
+      return NextResponse.json(
+        { ok: false, error: "Could not calculate availability." },
+        { status: 503 }
+      );
+    }
+
+    if (!location) {
       return NextResponse.json(
         {
           ok: false,
@@ -241,10 +249,7 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         ok: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Could not calculate availability.",
+        error: "Could not calculate availability.",
       },
       { status: 500 }
     );

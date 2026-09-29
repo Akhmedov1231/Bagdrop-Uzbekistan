@@ -16,6 +16,14 @@ import { calculateTotal } from "@/lib/pricing";
 import { Location, CustomerDetails } from "@/lib/types";
 import { useLanguage } from "@/lib/i18n";
 import { BOOKING_CONFIG } from "@/lib/config";
+import { sanitizeName, validatePhone } from "@/lib/security";
+import {
+  BOOKING_TZ_SUFFIX,
+  defaultSchedule,
+  isDropoffInPast,
+  isWithinHours,
+  tashkentParts,
+} from "@/lib/bookingTime";
 import {
   Calendar,
   Clock,
@@ -90,7 +98,18 @@ function BookingWizardInner() {
 
   const [step, setStep] = useState(1);
 
-  const today = new Date().toISOString().slice(0, 10);
+  // Re-evaluated every 30 s so "the drop-off time has passed" shows up while
+  // the customer is still on the page, not only when they press Confirm.
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  // Tashkent calendar date, not the UTC date (between 00:00 and 04:59 in
+  // Tashkent the UTC date is still yesterday).
+  const today = tashkentParts(now).date;
 
   const initialDropDate = searchParams.get("dropoffDate") || today;
   const initialDropTime = searchParams.get("dropoffTime") || "10:00";
@@ -114,6 +133,7 @@ function BookingWizardInner() {
 
   const [creatingBooking, setCreatingBooking] = useState(false);
   const [bookingError, setBookingError] = useState("");
+  const [rejectedDropoff, setRejectedDropoff] = useState<string | null>(null);
   const [createdBooking, setCreatedBooking] = useState<CreatedBooking | null>(null);
   const [qrImage, setQrImage] = useState("");
   const [emailSent, setEmailSent] = useState(false);
@@ -176,6 +196,17 @@ function BookingWizardInner() {
         };
 
         setLocation(mappedLocation);
+
+        // No schedule in the URL: the old fixed "today 10:00 -> 18:00" is
+        // already in the past for most of the day, so start from the earliest
+        // time the server will accept, inside this location's opening hours.
+        if (!searchParams.get("dropoffDate") || !searchParams.get("dropoffTime")) {
+          const d = defaultSchedule(mappedLocation.hours.open, mappedLocation.hours.close);
+          setDropDate(d.dropDate);
+          setDropTime(d.dropTime);
+          setPickDate(d.pickDate);
+          setPickTime(d.pickTime);
+        }
       } catch (error) {
         console.error("Failed to load location:", error);
         setLocationError(t.booking.loadLocationError);
@@ -198,13 +229,19 @@ function BookingWizardInner() {
       return;
     }
 
+    // Nothing left to reserve once the booking exists.
+    if (createdBooking) return;
+
     const currentLocation = location;
     let cancelled = false;
+    const controllers = new Set<AbortController>();
 
     async function loadAvailability() {
-      try {
-        setLoadingAvailability(true);
+      const controller = new AbortController();
+      controllers.add(controller);
+      const timeout = window.setTimeout(() => controller.abort(), 10_000);
 
+      try {
         const params = new URLSearchParams({
           locationId: currentLocation.id,
           dropoffDate: dropDate,
@@ -215,13 +252,13 @@ function BookingWizardInner() {
 
         const response = await fetch(
           `/api/locations/availability?${params.toString()}`,
-          { cache: "no-store" }
+          { cache: "no-store", signal: controller.signal }
         );
 
-        const result = await response.json();
+        const result = await response.json().catch(() => null);
 
-        if (!response.ok || !result.ok) {
-          throw new Error(result.error || t.booking.availabilityError);
+        if (!response.ok || !result?.ok) {
+          throw new Error(result?.error || t.booking.availabilityError);
         }
 
         if (!cancelled) {
@@ -229,26 +266,32 @@ function BookingWizardInner() {
           setReservedBags(Math.max(0, Number(result.reservedBags)));
         }
       } catch (error) {
+        if (cancelled) return;
         console.error("Availability loading failed:", error);
-        if (!cancelled) {
-          setAvailableBags(null);
-          setReservedBags(0);
-        }
+        setAvailableBags(null);
+        setReservedBags(0);
       } finally {
+        window.clearTimeout(timeout);
+        controllers.delete(controller);
         if (!cancelled) {
           setLoadingAvailability(false);
         }
       }
     }
 
+    // Only the first check after the schedule changes shows "Checking…". The
+    // 15-second refreshes run in the background; they used to disable Confirm
+    // for about a second each time, which swallowed clicks.
+    setLoadingAvailability(true);
     loadAvailability();
     const interval = window.setInterval(loadAvailability, 15000);
 
     return () => {
       cancelled = true;
+      controllers.forEach((controller) => controller.abort());
       window.clearInterval(interval);
     };
-  }, [location, dropDate, dropTime, pickDate, pickTime]);
+  }, [location, dropDate, dropTime, pickDate, pickTime, createdBooking]);
 
   useEffect(() => {
     if (!location) return;
@@ -288,8 +331,10 @@ function BookingWizardInner() {
     }
   }, [step]);
 
-  const dropoffAt = `${dropDate}T${dropTime}:00`;
-  const pickupAt = `${pickDate}T${pickTime}:00`;
+  // Same explicit +05:00 the API uses, so duration, price tier and the 10-day
+  // limit do not depend on the visitor's timezone / DST.
+  const dropoffAt = `${dropDate}T${dropTime}:00${BOOKING_TZ_SUFFIX}`;
+  const pickupAt = `${pickDate}T${pickTime}:00${BOOKING_TZ_SUFFIX}`;
 
   const priceInfo = useMemo(() => {
     if (!location) {
@@ -300,20 +345,48 @@ function BookingWizardInner() {
 
   const storageHours = priceInfo.hours;
 
+  // Mirrors the server: RPC DROPOFF_IN_PAST and route.ts opening-hours check.
+  // A drop-off the server already rejected as past counts too, in case this
+  // device's clock is behind the server's.
+  const dropoffInPast =
+    isDropoffInPast(dropDate, dropTime, now) ||
+    rejectedDropoff === `${dropDate}T${dropTime}`;
+  const timesWithinHours = location
+    ? isWithinHours(dropTime, location.hours.open, location.hours.close) &&
+      isWithinHours(pickTime, location.hours.open, location.hours.close)
+    : false;
+  const pickupAfterDropoff = new Date(pickupAt) > new Date(dropoffAt);
+  const openingHoursMessage = location
+    ? `${t.booking.arriveWithinOpeningHours}: ${location.hours.open}–${location.hours.close}`
+    : "";
+
+  // Everything step 1 can already tell the customer about their schedule.
+  const scheduleWarnings: string[] = [];
+  if (dropoffInPast) scheduleWarnings.push(t.booking.dropoffInPastError);
+  if (location && !timesWithinHours) scheduleWarnings.push(openingHoursMessage);
+  if (!pickupAfterDropoff) {
+    scheduleWarnings.push(t.booking.pickupAfterDropoff);
+  } else if (storageHours > BOOKING_CONFIG.maxBookingDays * 24) {
+    scheduleWarnings.push(t.booking.max10DaysMessage);
+  }
+
   const canContinueStep1 =
     Boolean(dropDate) &&
     Boolean(dropTime) &&
     Boolean(pickDate) &&
     Boolean(pickTime) &&
-    new Date(pickupAt) > new Date(dropoffAt) &&
-    storageHours <= BOOKING_CONFIG.maxBookingDays * 24;
+    scheduleWarnings.length === 0;
 
   const emailLooksValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email.trim());
+  // Same sanitiser/validator the API applies (src/lib/security.ts).
+  const firstNameValid = Boolean(sanitizeName(customer.firstName));
+  const lastNameValid = Boolean(sanitizeName(customer.lastName));
+  const phoneValid = validatePhone(customer.phone).valid;
 
   const canContinueStep3 =
-    Boolean(customer.firstName.trim()) &&
-    Boolean(customer.lastName.trim()) &&
-    Boolean(customer.phone.trim()) &&
+    firstNameValid &&
+    lastNameValid &&
+    phoneValid &&
     emailLooksValid;
 
   async function startPayment() {
@@ -337,12 +410,12 @@ function BookingWizardInner() {
         }),
       });
 
-      const data = await response.json();
-      if (!response.ok || !data.ok) {
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.ok) {
         throw new Error(
-          data.code === "PAYMENT_PROVIDER_NOT_CONFIGURED"
+          data?.code === "PAYMENT_PROVIDER_NOT_CONFIGURED"
             ? t.booking.paymentNotConfigured
-            : data.error || t.booking.paymentCreateError
+            : data?.error || t.booking.paymentCreateError
         );
       }
 
@@ -365,6 +438,17 @@ function BookingWizardInner() {
     if (!personalItemsAcknowledged) {
       setBookingError(t.booking.safetyConfirmError);
       setStep(4);
+      return;
+    }
+
+    // Time passes while the customer fills in steps 2-4: re-check right
+    // before submitting instead of sending a request the RPC will reject.
+    if (isDropoffInPast(dropDate, dropTime)) {
+      // Refresh `now` so step 1's own warning and disabled Continue agree
+      // with this check straight away, not at the next 30-second tick.
+      setNow(Date.now());
+      setBookingError(t.booking.dropoffInPastError);
+      setStep(1);
       return;
     }
 
@@ -408,9 +492,46 @@ function BookingWizardInner() {
         }),
       });
 
-      const result = await response.json();
-      if (!response.ok || !result.ok) {
-        throw new Error(result.error || t.booking.createBookingError);
+      // A proxy error page (502/503/504) is HTML: don't show a JSON parse error.
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.ok) {
+        const code: string | undefined = result?.code;
+        const byCode: Record<string, { message: string; step: number }> = {
+          DROPOFF_IN_PAST: { message: t.booking.dropoffInPastError, step: 1 },
+          OUTSIDE_OPENING_HOURS: { message: openingHoursMessage, step: 1 },
+          INVALID_BOOKING_INTERVAL: { message: t.booking.pickupAfterDropoff, step: 1 },
+          BOOKING_LIMIT_EXCEEDED: { message: t.booking.max10DaysError, step: 1 },
+          CAPACITY_EXCEEDED: { message: t.booking.notEnoughBagsError, step: 2 },
+          INVALID_NAME: { message: t.booking.nameInvalidError, step: 3 },
+          INVALID_PHONE: { message: t.booking.validPhoneError, step: 3 },
+          INVALID_EMAIL: { message: t.booking.validEmailError, step: 3 },
+        };
+        const mapped = code ? byCode[code] : undefined;
+
+        if (mapped) {
+          if (code === "CAPACITY_EXCEEDED" && typeof result?.availableBags === "number") {
+            setAvailableBags(result.availableBags);
+          }
+          if (code === "DROPOFF_IN_PAST") {
+            setNow(Date.now());
+            setRejectedDropoff(`${dropDate}T${dropTime}`);
+          }
+          setBookingError(mapped.message);
+          setStep(mapped.step);
+          return;
+        }
+
+        if (response.status === 429) {
+          throw new Error(t.booking.tooManyAttemptsError);
+        }
+
+        throw new Error(
+          response.status >= 500 || !result
+            ? t.booking.serverBusyError
+            : result.error
+            ? `${t.booking.createBookingError} (${result.error})`
+            : t.booking.createBookingError
+        );
       }
 
       const booking: CreatedBooking = {
@@ -433,6 +554,18 @@ function BookingWizardInner() {
     } finally {
       setCreatingBooking(false);
     }
+  }
+
+  // An error belongs to the attempt that produced it: once the customer moves
+  // between steps or edits the schedule, it no longer describes the form.
+  function goToStep(next: number) {
+    setBookingError("");
+    setStep(next);
+  }
+
+  function updateSchedule(setter: (value: string) => void, value: string) {
+    setBookingError("");
+    setter(value);
   }
 
   if (loadingLocation) {
@@ -525,6 +658,15 @@ function BookingWizardInner() {
         </div>
       </div>
 
+      {/* Errors that send the customer back to step 1-3 must be visible there
+          too, unless step 1's own warning below already says the same thing. */}
+      {bookingError && step < 4 && !(step === 1 && scheduleWarnings.includes(bookingError)) && (
+        <div role="alert" className="mb-4 text-xs text-rose-600 bg-rose-50 border border-rose-200 p-3 rounded-xl flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span>{bookingError}</span>
+        </div>
+      )}
+
       {/* STEP 1: DATE & TIME */}
       <AnimatePresence mode="wait">
         {step === 1 && (
@@ -555,7 +697,11 @@ function BookingWizardInner() {
                   type="date"
                   min={today}
                   value={dropDate}
-                  onChange={(e) => setDropDate(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    updateSchedule(setDropDate, value);
+                    if (pickDate < value) setPickDate(value);
+                  }}
                   className="admin-input font-medium"
                 />
               </Field>
@@ -563,8 +709,10 @@ function BookingWizardInner() {
               <Field label={t.booking.dropOffTime}>
                 <input
                   type="time"
+                  min={location.hours.open}
+                  max={location.hours.close}
                   value={dropTime}
-                  onChange={(e) => setDropTime(e.target.value)}
+                  onChange={(e) => updateSchedule(setDropTime, e.target.value)}
                   className="admin-input font-medium"
                 />
               </Field>
@@ -574,7 +722,7 @@ function BookingWizardInner() {
                   type="date"
                   min={dropDate}
                   value={pickDate}
-                  onChange={(e) => setPickDate(e.target.value)}
+                  onChange={(e) => updateSchedule(setPickDate, e.target.value)}
                   className="admin-input font-medium"
                 />
               </Field>
@@ -582,8 +730,10 @@ function BookingWizardInner() {
               <Field label={t.booking.pickupTime}>
                 <input
                   type="time"
+                  min={location.hours.open}
+                  max={location.hours.close}
                   value={pickTime}
-                  onChange={(e) => setPickTime(e.target.value)}
+                  onChange={(e) => updateSchedule(setPickTime, e.target.value)}
                   className="admin-input font-medium"
                 />
               </Field>
@@ -600,29 +750,27 @@ function BookingWizardInner() {
                   ? t.booking.checking
                   : availableBags !== null
                   ? `${availableBags} / ${location.capacity} free`
+                  : scheduleWarnings.length === 0
+                  ? t.booking.availabilityError
                   : t.booking.notAvailable}
               </span>
             </div>
 
-            {new Date(pickupAt) <= new Date(dropoffAt) && (
-              <div className="text-xs text-rose-600 bg-rose-50 border border-rose-200 p-3 rounded-xl flex items-center gap-2">
+            {scheduleWarnings.map((warning) => (
+              <div
+                key={warning}
+                role="alert"
+                className="text-xs text-rose-600 bg-rose-50 border border-rose-200 p-3 rounded-xl flex items-center gap-2"
+              >
                 <AlertTriangle className="w-4 h-4 shrink-0" />
-                <span>{t.booking.pickupAfterDropoff}</span>
+                <span>{warning}</span>
               </div>
-            )}
-
-            {new Date(pickupAt) > new Date(dropoffAt) &&
-              storageHours > BOOKING_CONFIG.maxBookingDays * 24 && (
-              <div className="text-xs text-rose-600 bg-rose-50 border border-rose-200 p-3 rounded-xl flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0" />
-                <span>{t.booking.max10DaysMessage}</span>
-              </div>
-            )}
+            ))}
 
             <div className="flex justify-end pt-2">
               <button
                 disabled={!canContinueStep1}
-                onClick={() => setStep(2)}
+                onClick={() => goToStep(2)}
                 className="inline-flex items-center gap-2 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-bold px-7 py-3.5 rounded-2xl shadow-glow-brand transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <span>{t.booking.continueButton}</span>
@@ -691,7 +839,7 @@ function BookingWizardInner() {
                     )
                   }
                   disabled={
-                    loadingAvailability ||
+                    (loadingAvailability && availableBags === null) ||
                     availableBags === 0 ||
                     (availableBags !== null && bags >= Math.min(location.maxBagsPerBooking, availableBags))
                   }
@@ -706,12 +854,18 @@ function BookingWizardInner() {
                   {t.booking.availableLimitReached}
                 </p>
               )}
+
+              {availableBags === 0 && (
+                <p className="text-xs text-rose-600 font-semibold text-center">
+                  {t.booking.noBagsAvailable}. {t.booking.chooseAnotherTime}
+                </p>
+              )}
             </div>
 
             <div className="flex items-center justify-between pt-2">
               <button
                 type="button"
-                onClick={() => setStep(1)}
+                onClick={() => goToStep(1)}
                 className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-ink px-4 py-3 rounded-2xl transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -720,9 +874,9 @@ function BookingWizardInner() {
 
               <button
                 type="button"
-                onClick={() => setStep(3)}
-                disabled={availableBags === 0 || loadingAvailability}
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-bold px-7 py-3.5 rounded-2xl shadow-glow-brand transition-all"
+                onClick={() => goToStep(3)}
+                disabled={availableBags === 0 || (loadingAvailability && availableBags === null)}
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-bold px-7 py-3.5 rounded-2xl shadow-glow-brand transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <span>{t.booking.continueButton}</span>
                 <ArrowRight className="w-4 h-4" />
@@ -773,6 +927,13 @@ function BookingWizardInner() {
               </Field>
             </div>
 
+            {((customer.firstName.trim() && !firstNameValid) ||
+              (customer.lastName.trim() && !lastNameValid)) && (
+              <p className="text-xs text-rose-500 font-semibold">
+                {t.booking.nameInvalidError}
+              </p>
+            )}
+
             <Field label={t.booking.phone} required>
               <div className="relative">
                 <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -783,6 +944,11 @@ function BookingWizardInner() {
                   onChange={(e) => setCustomer({ ...customer, phone: e.target.value })}
                 />
               </div>
+              {customer.phone.trim() && !phoneValid && (
+                <p className="text-xs text-rose-500 font-semibold mt-1">
+                  {t.booking.validPhoneError}
+                </p>
+              )}
             </Field>
 
             <Field label={t.booking.email} required>
@@ -820,7 +986,7 @@ function BookingWizardInner() {
             <div className="flex items-center justify-between pt-2">
               <button
                 type="button"
-                onClick={() => setStep(2)}
+                onClick={() => goToStep(2)}
                 className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-ink px-4 py-3 rounded-2xl transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -830,7 +996,7 @@ function BookingWizardInner() {
               <button
                 type="button"
                 disabled={!canContinueStep3}
-                onClick={() => setStep(4)}
+                onClick={() => goToStep(4)}
                 className="inline-flex items-center gap-2 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-bold px-7 py-3.5 rounded-2xl shadow-glow-brand transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <span>{t.booking.continueButton}</span>
@@ -920,16 +1086,28 @@ function BookingWizardInner() {
             </div>
 
             {bookingError && (
-              <div className="text-xs text-rose-600 bg-rose-50 border border-rose-200 p-3 rounded-xl flex items-center gap-2">
+              <div role="alert" className="text-xs text-rose-600 bg-rose-50 border border-rose-200 p-3 rounded-xl flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
                 <span>{bookingError}</span>
+              </div>
+            )}
+
+            {!bookingError &&
+              (availableBags === 0 || (availableBags !== null && bags > availableBags)) && (
+              <div role="alert" className="text-xs text-rose-600 bg-rose-50 border border-rose-200 p-3 rounded-xl flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>
+                  {availableBags === 0
+                    ? `${t.booking.noBagsAvailable}. ${t.booking.chooseAnotherTime}`
+                    : t.booking.notEnoughBagsError}
+                </span>
               </div>
             )}
 
             <div className="flex items-center justify-between pt-2">
               <button
                 type="button"
-                onClick={() => setStep(3)}
+                onClick={() => goToStep(3)}
                 disabled={creatingBooking}
                 className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-ink px-4 py-3 rounded-2xl transition-colors"
               >
@@ -942,7 +1120,7 @@ function BookingWizardInner() {
                 onClick={createBooking}
                 disabled={
                   creatingBooking ||
-                  loadingAvailability ||
+                  (loadingAvailability && availableBags === null) ||
                   !personalItemsAcknowledged ||
                   availableBags === 0 ||
                   (availableBags !== null && bags > availableBags)

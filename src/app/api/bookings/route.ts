@@ -78,6 +78,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           ok: false,
+          code: "RATE_LIMITED",
           error: "Too many booking attempts. Please slow down and try again.",
         },
         {
@@ -136,6 +137,12 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           ok: false,
+          // Typed something, but sanitizeName() stripped it all ("123", emoji, "...").
+          code:
+            (!firstName && String(body.firstName ?? "").trim()) ||
+            (!lastName && String(body.lastName ?? "").trim())
+              ? "INVALID_NAME"
+              : "MISSING_FIELDS",
           error:
             "Please fill in all required fields.",
         },
@@ -159,6 +166,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           ok: false,
+          code: "INVALID_EMAIL",
           error: "Please enter a valid email address.",
         },
         { status: 400 }
@@ -170,6 +178,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           ok: false,
+          code: "INVALID_PHONE",
           error: "Please enter a valid phone number.",
         },
         { status: 400 }
@@ -258,6 +267,17 @@ export async function POST(request: Request) {
       );
     }
 
+    if (dropoffTimestamp < Date.now()) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "DROPOFF_IN_PAST",
+          error: "The drop-off time has already passed. Please choose a later drop-off time.",
+        },
+        { status: 400 }
+      );
+    }
+
     // --------------------------------------------------
     // 5. Supabase
     //
@@ -293,9 +313,12 @@ export async function POST(request: Request) {
       )
       .eq("id", locationId)
       .eq("active", true)
-      .single();
+      .maybeSingle();
 
-    if (locationError || !location) {
+    // A failed query is not a missing location: telling the customer the
+    // location does not exist during a brief database hiccup sends them away
+    // from a booking that would work on the next try.
+    if (locationError) {
       console.error(
         "Location lookup error:",
         locationError
@@ -304,6 +327,19 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           ok: false,
+          code: "TEMPORARILY_UNAVAILABLE",
+          error:
+            "Booking is temporarily unavailable. Please try again in a moment.",
+        },
+        { status: 503 }
+      );
+    }
+
+    if (!location) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "LOCATION_UNAVAILABLE",
           error:
             "Location not found or inactive.",
         },
@@ -344,6 +380,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           ok: false,
+          code: "OUTSIDE_OPENING_HOURS",
           error: `Selected time must be within opening hours ${openingTime}–${closingTime}.`,
         },
         { status: 400 }
@@ -371,6 +408,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           ok: false,
+          code: "BOOKING_LIMIT_EXCEEDED",
           error: `BagDrop bookings can be made for up to ${BOOKING_CONFIG.maxBookingDays} days.`,
         },
         { status: 400 }
@@ -417,6 +455,7 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             ok: false,
+            code: "CAPACITY_EXCEEDED",
             error: `Only ${availableBags} bag(s) are available for the selected time.`,
             availableBags,
           },
@@ -426,26 +465,34 @@ export async function POST(request: Request) {
 
       if (errorMessage.includes("LOCATION_UNAVAILABLE")) {
         return NextResponse.json(
-          { ok: false, error: "Location not found or inactive." },
+          { ok: false, code: "LOCATION_UNAVAILABLE", error: "Location not found or inactive." },
           { status: 404 }
         );
       }
 
-      const invalidBookingErrors = [
-        "INVALID_BOOKING_INTERVAL",
-        "DROPOFF_IN_PAST",
-        "BOOKING_LIMIT_EXCEEDED",
-        "OUTSIDE_OPENING_HOURS",
-        "INVALID_BOOKING_INPUT",
-      ];
+      // One specific, machine-readable answer per RPC rule instead of a
+      // single generic message the customer cannot act on.
+      const rpcErrors: Record<string, string> = {
+        DROPOFF_IN_PAST: "The drop-off time has already passed. Please choose a later drop-off time.",
+        INVALID_BOOKING_INTERVAL: "Pickup must be after drop-off.",
+        BOOKING_LIMIT_EXCEEDED: `BagDrop bookings can be made for up to ${BOOKING_CONFIG.maxBookingDays} days.`,
+        OUTSIDE_OPENING_HOURS: `Selected time must be within opening hours ${openingTime}–${closingTime}.`,
+        INVALID_BOOKING_INPUT: "The booking details are invalid.",
+      };
+      const rpcCode = Object.keys(rpcErrors).find((code) => errorMessage.includes(code));
+      if (rpcCode) {
+        return NextResponse.json(
+          { ok: false, code: rpcCode, error: rpcErrors[rpcCode] },
+          { status: 400 }
+        );
+      }
       if (
         bookingError?.code === "22008" ||
         bookingError?.code === "22007" ||
-        bookingError?.code === "22023" ||
-        invalidBookingErrors.some((code) => errorMessage.includes(code))
+        bookingError?.code === "22023"
       ) {
         return NextResponse.json(
-          { ok: false, error: "The selected booking dates or times are invalid." },
+          { ok: false, code: "INVALID_DATE_TIME", error: "The selected booking dates or times are invalid." },
           { status: 400 }
         );
       }
@@ -458,6 +505,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           ok: false,
+          code: "BOOKING_FAILED",
           error:
             "Could not create booking.",
         },
@@ -582,6 +630,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         ok: false,
+        code: "SERVER_ERROR",
         error:
           "Unexpected server error.",
       },

@@ -324,6 +324,11 @@ type TranslationSet = {
     validEmailError: string;
     notEnoughBagsError: string;
     createBookingError: string;
+    dropoffInPastError: string;
+    validPhoneError: string;
+    nameInvalidError: string;
+    serverBusyError: string;
+    tooManyAttemptsError: string;
     max10DaysMessage: string;
     pickupAfterDropoff: string;
     arriveWithinOpeningHours: string;
@@ -773,6 +778,11 @@ export const translations: Record<
       validEmailError: "To‘g‘ri email manzilini kiriting.",
       notEnoughBagsError: "Tanlangan vaqt uchun yetarli sumka mavjud emas.",
       createBookingError: "Bron yaratib bo‘lmadi.",
+      dropoffInPastError: "Topshirish vaqti o‘tib ketgan. Iltimos, keyinroq vaqtni tanlang (Toshkent vaqti bilan).",
+      validPhoneError: "To‘g‘ri telefon raqamini kiriting, masalan +998 90 123 45 67.",
+      nameInvalidError: "Ism va familiya faqat harflardan iborat bo‘lishi kerak.",
+      serverBusyError: "Serverda vaqtinchalik muammo. Birozdan so‘ng qayta urinib ko‘ring.",
+      tooManyAttemptsError: "Juda ko‘p urinish bo‘ldi. Bir daqiqa kutib, qayta urinib ko‘ring.",
       max10DaysMessage: "Saqlashning maksimal muddati 10 kun. Iltimos, ertaroq olib ketish vaqtini tanlang.",
       pickupAfterDropoff: "Olib ketish vaqti topshirish vaqtidan keyin bo‘lishi kerak.",
       arriveWithinOpeningHours: "Iltimos, punktning ish vaqti ichida keling",
@@ -1206,6 +1216,11 @@ export const translations: Record<
       validEmailError: "Введите корректный email.",
       notEnoughBagsError: "На выбранное время недостаточно свободных мест.",
       createBookingError: "Не удалось создать бронирование.",
+      dropoffInPastError: "Время сдачи уже прошло. Выберите более позднее время (по ташкентскому времени).",
+      validPhoneError: "Введите корректный номер телефона, например +998 90 123 45 67.",
+      nameInvalidError: "Имя и фамилия должны содержать буквы.",
+      serverBusyError: "Временная ошибка сервера. Повторите попытку через минуту.",
+      tooManyAttemptsError: "Слишком много попыток. Подождите минуту и попробуйте снова.",
       max10DaysMessage: "Максимальная продолжительность хранения — 10 дней. Выберите более раннее время получения.",
       pickupAfterDropoff: "Время получения должно быть позже времени сдачи.",
       arriveWithinOpeningHours: "Пожалуйста, приходите в часы работы пункта",
@@ -1641,6 +1656,11 @@ export const translations: Record<
       validEmailError: "Please enter a valid email address.",
       notEnoughBagsError: "Not enough bags are available for this selected time.",
       createBookingError: "Could not create booking.",
+      dropoffInPastError: "This drop-off time has already passed. Please choose a later time (Tashkent time).",
+      validPhoneError: "Please enter a valid phone number, e.g. +998 90 123 45 67.",
+      nameInvalidError: "First and last name must contain letters.",
+      serverBusyError: "Temporary server problem. Please try again in a moment.",
+      tooManyAttemptsError: "Too many attempts. Please wait a minute and try again.",
       max10DaysMessage: "Maximum storage duration is 10 days. Please choose an earlier pickup time.",
       pickupAfterDropoff: "Pickup must be after drop-off.",
       arriveWithinOpeningHours: "Please arrive within the location's opening hours",

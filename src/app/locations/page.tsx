@@ -11,6 +11,7 @@ import DemoBadge from "@/components/DemoBadge";
 // as local consts, so editing the tariff in pricing.ts would have left this
 // page quoting the old one with nothing to catch it.
 import { PRICE_UP_TO_12_HOURS } from "@/lib/pricing";
+import { defaultSchedule } from "@/lib/bookingTime";
 import { LocationCardSkeleton, MapSkeleton } from "@/components/Skeleton";
 import { Location } from "@/lib/types";
 import { LOCATIONS } from "@/lib/mockData";
@@ -57,14 +58,6 @@ function formatTime(value: string) {
   return String(value ?? "").slice(0, 5);
 }
 
-function getToday() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
 function LocationsContent() {
   const { t } = useLanguage();
   const searchParams = useSearchParams();
@@ -94,11 +87,6 @@ function LocationsContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [loadingAvailability, setLoadingAvailability] = useState(false);
-
-  const [dropoffDate] = useState(getToday);
-  const [pickupDate] = useState(getToday);
-  const [dropoffTime] = useState("10:00");
-  const [pickupTime] = useState("18:00");
 
   useEffect(() => {
     let cancelled = false;
@@ -189,12 +177,17 @@ function LocationsContent() {
         await Promise.all(
           locations.map(async (location) => {
             try {
+              // The same default window /book offers for this location. A
+              // fixed "today 10:00-18:00" is in the past after 10:00 Tashkent
+              // time; the API rejects it and every card fell back to showing
+              // its full capacity as free.
+              const schedule = defaultSchedule(location.hours.open, location.hours.close);
               const params = new URLSearchParams({
                 locationId: location.id,
-                dropoffDate,
-                dropoffTime,
-                pickupDate,
-                pickupTime,
+                dropoffDate: schedule.dropDate,
+                dropoffTime: schedule.dropTime,
+                pickupDate: schedule.pickDate,
+                pickupTime: schedule.pickTime,
               });
 
               const response = await fetch(
@@ -232,7 +225,7 @@ function LocationsContent() {
     return () => {
       cancelled = true;
     };
-  }, [locations, dropoffDate, dropoffTime, pickupDate, pickupTime]);
+  }, [locations]);
 
   const locationsWithAvailability = useMemo(() => {
     return locations.map((location) => ({

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
@@ -10,6 +10,12 @@ import {
   calculatePricingTier,
   PRICE_UP_TO_12_HOURS,
 } from "@/lib/pricing";
+import {
+  BOOKING_TZ_SUFFIX,
+  defaultSchedule,
+  isDropoffInPast,
+  tashkentParts,
+} from "@/lib/bookingTime";
 import {
   Luggage,
   MapPin,
@@ -58,17 +64,10 @@ function formatTime(value: string) {
   return String(value ?? "").slice(0, 5);
 }
 
-function getToday() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function isOpenNow(open: string, close: string) {
-  const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+// Opening hours are Tashkent wall-clock times, whatever the visitor's timezone.
+function isOpenNow(open: string, close: string, now: number) {
+  const [currentHour, currentMinute] = tashkentParts(now).time.split(":").map(Number);
+  const currentMinutes = currentHour * 60 + currentMinute;
 
   const [openHour, openMinute] = open.split(":").map(Number);
   const [closeHour, closeMinute] = close.split(":").map(Number);
@@ -96,7 +95,19 @@ export default function LocationDetailPage() {
   const { t } = useLanguage();
 
   const slug = String(params.slug ?? "");
-  const today = useMemo(() => getToday(), []);
+
+  // Re-evaluated every 30 s so a drop-off time that passes while the page is
+  // open is caught here, not only at the final step of /book.
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  // Tashkent calendar date: the server and the booking RPC work in Tashkent
+  // time, whatever timezone the visitor's device is in.
+  const today = tashkentParts(now).date;
 
   const [location, setLocation] = useState<ApiLocation | null>(null);
   const [loadingLocation, setLoadingLocation] = useState(true);
@@ -137,6 +148,18 @@ export default function LocationDetailPage() {
 
         if (!cancelled) {
           setLocation(found);
+
+          // A fixed "today 10:00" default is already in the past for most of
+          // the day, and the booking RPC rejects a past drop-off. Start from
+          // the earliest time the server accepts, within opening hours.
+          const schedule = defaultSchedule(
+            formatTime(found.opening_time),
+            formatTime(found.closing_time)
+          );
+          setDropoffDate(schedule.dropDate);
+          setDropoffTime(schedule.dropTime);
+          setPickupDate(schedule.pickDate);
+          setPickupTime(schedule.pickTime);
         }
       } catch (error) {
         console.error("Location loading error:", error);
@@ -164,6 +187,21 @@ export default function LocationDetailPage() {
     const currentLocation = location;
     let cancelled = false;
 
+    // The server would only answer these with an English error; the
+    // warnings below the form already explain them in the visitor's language.
+    const dropoffMs = new Date(`${dropoffDate}T${dropoffTime}:00${BOOKING_TZ_SUFFIX}`).getTime();
+    const pickupMs = new Date(`${pickupDate}T${pickupTime}:00${BOOKING_TZ_SUFFIX}`).getTime();
+    if (
+      isDropoffInPast(dropoffDate, dropoffTime) ||
+      !Number.isFinite(pickupMs) ||
+      pickupMs <= dropoffMs
+    ) {
+      setAvailability(null);
+      setAvailabilityError("");
+      setLoadingAvailability(false);
+      return;
+    }
+
     async function loadAvailability() {
       try {
         setLoadingAvailability(true);
@@ -182,10 +220,20 @@ export default function LocationDetailPage() {
           { cache: "no-store" }
         );
 
-        const result = await response.json();
+        const result = await response.json().catch(() => null);
 
-        if (!response.ok || !result.ok) {
-          throw new Error(result.error || "Could not check availability.");
+        // The server's clock is the one that counts: if it says the drop-off
+        // has passed (this device's clock may be behind), say so.
+        if (result?.code === "DROPOFF_IN_PAST") {
+          if (!cancelled) {
+            setAvailability(null);
+            setAvailabilityError(t.booking.dropoffInPastError);
+          }
+          return;
+        }
+
+        if (!response.ok || !result?.ok) {
+          throw new Error(result?.error || "Could not check availability.");
         }
 
         if (!cancelled) {
@@ -199,11 +247,7 @@ export default function LocationDetailPage() {
         console.error("Availability error:", error);
         if (!cancelled) {
           setAvailability(null);
-          setAvailabilityError(
-            error instanceof Error
-              ? error.message
-              : t.locationDetail.availabilityError
-          );
+          setAvailabilityError(t.locationDetail.availabilityError);
         }
       } finally {
         if (!cancelled) {
@@ -258,26 +302,29 @@ export default function LocationDetailPage() {
 
   const openingTime = formatTime(location.opening_time);
   const closingTime = formatTime(location.closing_time);
-  const locationOpen = isOpenNow(openingTime, closingTime);
+  const locationOpen = isOpenNow(openingTime, closingTime, now);
+
+  // Same explicit +05:00 the API uses, so durations and prices do not shift
+  // with the visitor's timezone or DST.
+  const dropoffAt = `${dropoffDate}T${dropoffTime}:00${BOOKING_TZ_SUFFIX}`;
+  const pickupAt = `${pickupDate}T${pickupTime}:00${BOOKING_TZ_SUFFIX}`;
 
   const dateTimeValid =
     Boolean(dropoffDate) &&
     Boolean(dropoffTime) &&
     Boolean(pickupDate) &&
     Boolean(pickupTime) &&
-    new Date(`${pickupDate}T${pickupTime}`).getTime() >
-      new Date(`${dropoffDate}T${dropoffTime}`).getTime();
+    new Date(pickupAt).getTime() > new Date(dropoffAt).getTime();
 
   const storageHours = dateTimeValid
-    ? (new Date(`${pickupDate}T${pickupTime}`).getTime() -
-        new Date(`${dropoffDate}T${dropoffTime}`).getTime()) /
+    ? (new Date(pickupAt).getTime() - new Date(dropoffAt).getTime()) /
       (1000 * 60 * 60)
     : 0;
 
-  const storagePrice = calculatePricingTier(
-    `${dropoffDate}T${dropoffTime}`,
-    `${pickupDate}T${pickupTime}`
-  ).pricePerBag;
+  const storagePrice = calculatePricingTier(dropoffAt, pickupAt).pricePerBag;
+
+  // Mirrors the booking RPC's DROPOFF_IN_PAST rule.
+  const dropoffInPast = isDropoffInPast(dropoffDate, dropoffTime, now);
   const storageTier = storageHours <= 12
     ? t.locationDetail.upTo12HoursShort
     : `${Math.ceil(storageHours / 24)} × ${t.locationDetail.hours24}`;
@@ -291,6 +338,7 @@ export default function LocationDetailPage() {
 
   const canBook =
     dateTimeValid &&
+    !dropoffInPast &&
     withinMaximumStoragePeriod &&
     timesWithinOpeningHours &&
     availability !== null &&
@@ -643,6 +691,13 @@ export default function LocationDetailPage() {
                 </div>
 
                 {/* Validation warnings */}
+                {dropoffInPast && (
+                  <div className="text-xs text-rose-600 bg-rose-50 border border-rose-200 p-3 rounded-xl flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{t.booking.dropoffInPastError}</span>
+                  </div>
+                )}
+
                 {!dateTimeValid && (
                   <div className="text-xs text-rose-600 bg-rose-50 border border-rose-200 p-3 rounded-xl flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 shrink-0" />
