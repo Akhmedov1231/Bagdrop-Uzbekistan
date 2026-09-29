@@ -16,9 +16,7 @@ import type { Database } from "./types";
  * shortcut to skip writing a proper RLS policy.
  */
 export function createAdminClient() {
-  const serviceKey =
-    env.supabaseServiceRoleKey || "placeholder-service-role-key";
-  return createSupabaseClient<Database>(env.supabaseUrl, serviceKey, {
+  return createSupabaseClient<Database>(env.supabaseUrl, env.supabaseServiceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 }

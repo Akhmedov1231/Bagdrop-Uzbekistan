@@ -13,6 +13,43 @@
 
 const SUPABASE_PROJECT = "itgdmlephzbrsejdrmew.supabase.co";
 
+// ============================================================
+// Public Supabase key guard
+//
+// NEXT_PUBLIC_SUPABASE_ANON_KEY is inlined into public JavaScript (see
+// src/lib/env.ts). If the service-role or a secret key were ever pasted into
+// it, the build would publish a key that bypasses Row Level Security. Refuse
+// to build instead; a failed build leaves the current deployment running.
+// ============================================================
+
+function assertPublicSupabaseKey(key) {
+  if (!key) return;
+
+  if (key.startsWith("sb_secret_")) {
+    throw new Error(
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY holds a secret key (sb_secret_...). Use the anon / publishable key."
+    );
+  }
+
+  const payload = key.split(".")[1];
+  if (!payload) return; // sb_publishable_... keys are not JWTs
+
+  let role;
+  try {
+    role = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")).role;
+  } catch {
+    return;
+  }
+
+  if (role && role !== "anon") {
+    throw new Error(
+      `NEXT_PUBLIC_SUPABASE_ANON_KEY is a "${role}" key. It is published to every visitor; use the anon key.`
+    );
+  }
+}
+
+assertPublicSupabaseKey(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim());
+
 // NOTE on the two openstreetmap entries below: they are not redundant.
 // A CSP host-source of `*.tile.openstreetmap.org` matches SUBDOMAINS ONLY — it
 // does not match the bare host. RealMap requests
@@ -65,7 +102,10 @@ const securityHeaders = [
   // Restrict browser features — disable unused APIs
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(self), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()",
+    // camera=(self): the partner portal scans customer QR codes with the
+    // device camera (html5-qrcode). An empty allowlist blocked getUserMedia,
+    // and check-in/check-out require a scan.
+    value: "camera=(self), microphone=(), geolocation=(self), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()",
   },
   // Content Security Policy — primary XSS defense
   {

@@ -184,13 +184,22 @@ export async function middleware(
   // We use Supabase REST here instead of
   // createAdminClient because middleware
   // runs in the Edge runtime.
+  //
+  // Only the /partner pages read isPartner, so
+  // only they pay for these two REST calls.
+  // /api/partner/* routes authorize themselves.
   // ==========================================
 
   let isPartner = false;
 
+  const needsPartnerCheck =
+    pathname === "/partner" ||
+    pathname.startsWith("/partner/");
+
   if (
     user &&
-    serviceRoleKey
+    serviceRoleKey &&
+    needsPartnerCheck
   ) {
     try {
       const membershipUrl =

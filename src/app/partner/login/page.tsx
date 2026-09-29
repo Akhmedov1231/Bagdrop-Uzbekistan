@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { SERVER_UNAVAILABLE_MESSAGE, signInErrorMessage } from "@/lib/supabase/authErrors";
 import { Store, Lock, Mail, ArrowRight, ShieldCheck, ArrowLeft } from "lucide-react";
 
 export default function PartnerLoginPage() {
@@ -33,7 +34,8 @@ export default function PartnerLoginPage() {
       });
 
       if (loginError) {
-        setError("Email yoki parol noto‘g‘ri.");
+        console.error("Partner sign-in failed:", loginError);
+        setError(signInErrorMessage(loginError));
         return;
       }
 
@@ -47,22 +49,33 @@ export default function PartnerLoginPage() {
         cache: "no-store",
       });
 
-      const result = await response.json();
+      const result = await response.json().catch(() => null);
 
-      if (!response.ok || !result.ok) {
-        await supabase.auth.signOut();
-        setError(
-          result.error || "Bu account Partner sifatida biriktirilmagan."
-        );
+      if (response.ok && result?.ok) {
+        router.replace("/partner");
+        router.refresh();
         return;
       }
 
-      router.replace("/partner");
-      router.refresh();
+      // A server error says nothing about the account: keep the session and
+      // let the partner retry instead of signing them out with a false
+      // "not linked to a partner".
+      if (response.status >= 500) {
+        setError(SERVER_UNAVAILABLE_MESSAGE);
+        return;
+      }
+
+      // Local scope: only this browser's new session. The default (global)
+      // would also log the account out on its other devices.
+      await supabase.auth.signOut({ scope: "local" });
+      setError(
+        response.status === 401
+          ? "Sessiyani tasdiqlab bo‘lmadi. Qayta urinib ko‘ring."
+          : result?.error || "Bu account Partner sifatida biriktirilmagan."
+      );
     } catch (error) {
       console.error("Partner login failed:", error);
-      await supabase.auth.signOut();
-      setError("Login vaqtida xatolik yuz berdi.");
+      setError(SERVER_UNAVAILABLE_MESSAGE);
     } finally {
       setLoading(false);
     }

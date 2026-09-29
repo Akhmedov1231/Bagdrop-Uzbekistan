@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { SERVER_UNAVAILABLE_MESSAGE, signInErrorMessage } from "@/lib/supabase/authErrors";
 import { ShieldCheck, Lock, Mail, ArrowRight, ArrowLeft } from "lucide-react";
 
 export default function AdminLoginPage() {
@@ -23,44 +24,69 @@ export default function AdminLoginPage() {
 
     setLoading(true);
 
-    const { data, error: loginError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
-
-    if (loginError) {
-      setLoading(false);
-      setError("Email yoki parol noto‘g‘ri.");
-      return;
-    }
-
-    if (!data.user) {
-      setLoading(false);
-      setError("Login amalga oshmadi.");
-      return;
-    }
-
-    const roleResponse = await fetch("/api/auth/role", {
-      method: "GET",
-      cache: "no-store",
-    });
-
-    let roleResult: { ok?: boolean; role?: string | null; error?: string } = {};
-
     try {
-      roleResult = await roleResponse.json();
-    } catch {
-      roleResult = {};
-    }
+      const { data, error: loginError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
 
-    if (!roleResponse.ok || !roleResult.ok || roleResult.role !== "admin") {
-      await supabase.auth.signOut();
+      if (loginError) {
+        console.error("Admin sign-in failed:", loginError);
+        setError(signInErrorMessage(loginError));
+        setLoading(false);
+        return;
+      }
+
+      if (!data.user) {
+        setError("Login amalga oshmadi.");
+        setLoading(false);
+        return;
+      }
+
+      const roleResponse = await fetch("/api/auth/role", {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      let roleResult: { ok?: boolean; role?: string | null; error?: string } = {};
+
+      try {
+        roleResult = await roleResponse.json();
+      } catch {
+        roleResult = {};
+      }
+
+      if (roleResponse.ok && roleResult.ok && roleResult.role === "admin") {
+        // Keep loading=true: the page is navigating away.
+        window.location.href = "/admin";
+        return;
+      }
+
+      // A server error says nothing about the account: keep the session and
+      // let the admin retry instead of signing them out with a false "not an
+      // administrator".
+      if (roleResponse.status >= 500) {
+        setError(SERVER_UNAVAILABLE_MESSAGE);
+        setLoading(false);
+        return;
+      }
+
+      // Local scope: only this browser's new session. The default (global)
+      // would also log the account out on its other devices.
+      await supabase.auth.signOut({ scope: "local" });
+      setError(
+        roleResponse.status === 401
+          ? "Sessiyani tasdiqlab bo‘lmadi. Qayta urinib ko‘ring."
+          : "Bu hisob Administrator sifatida tasdiqlanmagan."
+      );
       setLoading(false);
-      setError("Bu hisob Administrator sifatida tasdiqlanmagan.");
-      return;
+    } catch (err) {
+      // Network failure on the way to /api/auth/role: without this the form
+      // stayed disabled on "Authenticating..." until a reload.
+      console.error("Admin login failed:", err);
+      setError(SERVER_UNAVAILABLE_MESSAGE);
+      setLoading(false);
     }
-
-    window.location.href = "/admin";
   }
 
   return (

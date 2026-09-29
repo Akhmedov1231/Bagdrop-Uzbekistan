@@ -4,36 +4,32 @@
  * instead of failing confusingly deep inside a Supabase call.
  */
 
-function getEnv(name: string, fallback: string = ""): string {
-  const value = process.env[name];
-  if (!value) {
-    if (process.env.NODE_ENV === "production" && typeof window !== "undefined") {
-      console.warn(`Environment variable "${name}" is not set.`);
-    }
-    return fallback;
+function required(name: string, value: string | undefined): string {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    throw new Error(
+      `Missing required environment variable "${name}". NEXT_PUBLIC_* values are ` +
+        "inlined at build time, so they must be set where `next build` runs."
+    );
   }
-  return value;
-}
-
-function getRequiredEnv(name: string): string {
-  const value = process.env[name]?.trim();
-  if (!value) {
-    throw new Error(`Missing required environment variable "${name}".`);
-  }
-  return value;
+  return trimmed;
 }
 
 export const env = {
+  // These MUST stay literal `process.env.NEXT_PUBLIC_...` member expressions.
+  // Next.js inlines only those into the browser bundle; a dynamic lookup such
+  // as `process.env[name]` is undefined in the browser. That is what broke
+  // admin and partner login: the browser Supabase client silently fell back
+  // to a placeholder URL that does not exist, so every sign-in failed and was
+  // reported as a wrong password. A missing value now fails the build
+  // (prerender of /admin/login and /partner/login) instead of shipping that.
   get supabaseUrl() {
-    return getEnv(
-      "NEXT_PUBLIC_SUPABASE_URL",
-      "https://placeholder-project.supabase.co"
-    );
+    return required("NEXT_PUBLIC_SUPABASE_URL", process.env.NEXT_PUBLIC_SUPABASE_URL);
   },
   get supabaseAnonKey() {
-    return getEnv(
+    return required(
       "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-      "placeholder-anon-key"
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     );
   },
   /** SERVER-ONLY. Never call this from a "use client" component. */
@@ -41,7 +37,7 @@ export const env = {
     if (typeof window !== "undefined") {
       throw new Error("SUPABASE_SERVICE_ROLE_KEY must never be accessed from the browser.");
     }
-    return getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY");
+    return required("SUPABASE_SERVICE_ROLE_KEY", process.env.SUPABASE_SERVICE_ROLE_KEY);
   },
   get appUrl() {
     return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";

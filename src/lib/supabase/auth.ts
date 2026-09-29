@@ -3,6 +3,7 @@ import {
   type CookieOptions,
 } from "@supabase/ssr";
 
+import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -55,7 +56,15 @@ export async function getAuthenticatedUser() {
 
   const {
     data: { user },
+    error,
   } = await supabase.auth.getUser();
+
+  // No session is an ordinary "logged out". A network or Auth server failure
+  // is not, and must not be reported as one: the login pages sign the user out
+  // on 401. Callers turn the throw into a 500.
+  if (error && isAuthRetryableFetchError(error)) {
+    throw error;
+  }
 
   return user;
 }
@@ -143,13 +152,16 @@ export async function getPartnerForUser(
     .eq("user_id", userId)
     .maybeSingle();
 
+  // Query errors throw instead of returning null: null means "not a partner",
+  // and the partner login page signs the user out with "not linked" for that.
+  // Every caller is inside a try/catch that answers 500.
   if (membershipError) {
     console.error(
       "Partner membership lookup failed:",
       membershipError
     );
 
-    return null;
+    throw new Error("Partner membership lookup failed.");
   }
 
   if (membership) {
@@ -162,7 +174,7 @@ export async function getPartnerForUser(
 
     if (partnerError) {
       console.error("Partner lookup failed:", partnerError);
-      return null;
+      throw new Error("Partner lookup failed.");
     }
 
     return partner;
@@ -184,8 +196,11 @@ export async function getPartnerForUser(
     return linked ? legacyPartner : null;
   }
 
+  // The auth_user_id column exists in no migration, so this lookup is expected
+  // to fail with a "column does not exist" error; anything else is real.
   if (legacyError && !String(legacyError.message).includes("auth_user_id")) {
     console.error("Legacy partner lookup failed:", legacyError);
+    throw new Error("Legacy partner lookup failed.");
   }
 
   if (!emailConfirmed || !email) return null;
@@ -199,7 +214,7 @@ export async function getPartnerForUser(
 
   if (emailError) {
     console.error("Verified partner email lookup failed:", emailError);
-    return null;
+    throw new Error("Verified partner email lookup failed.");
   }
 
   if (!emailPartner) return null;
