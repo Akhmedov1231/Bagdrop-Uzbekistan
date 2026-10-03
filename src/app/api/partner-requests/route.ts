@@ -63,7 +63,7 @@ export async function POST(request: Request) {
     }
 
     const botToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
-    const chatId = process.env.TELEGRAM_CHAT_ID?.trim();
+    const chatId = process.env.TELEGRAM_PARTNER_CHAT_ID?.trim();
     if (!botToken || !chatId) {
       console.error("Partner request Telegram delivery is not configured.");
       return NextResponse.json(
